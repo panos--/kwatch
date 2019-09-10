@@ -8,8 +8,8 @@ const client = new k8sClient.K8sClient();
 //     }
 // });
 
-client.listResourcesFormatted("system", ["pods", "deployments"], (resources) => {
-    for (let resource of resources) {
-        console.log(resource);
-    }
-});
+//client.listResourcesFormatted("system", ["pods", "deployments"], (resources) => {
+//    for (let resource of resources) {
+//        console.log(resource);
+//    }
+//});

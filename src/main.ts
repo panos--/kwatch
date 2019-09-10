@@ -244,6 +244,12 @@ class App {
             this.resourceList.style.border.bg = -1;
             this.screen.render();
         });
+        let activeResource: blessed.Widgets.BlessedElement = null;
+        let activeResourceIndex = 0;
+        this.resourceList.on("select item", (item, index) => {
+            activeResource = item;
+            activeResourceIndex = index;
+        });
 
         mainPane.append(this.resourceList);
 
@@ -302,7 +308,10 @@ class App {
                 else {
                     namespaceName = lastNamespaceName = self.state.namespace.metadata.name;
                     apiResourceName = lastApiResourceName = self.state.apiResource.resource.name;
-                    timestamp = lastTimestamp = new Date().toLocaleString();
+                    let now = new Date();
+                    timestamp = lastTimestamp = now.toLocaleString(undefined, {
+                        hour12: false,
+                    }) + "." + now.getMilliseconds();
                 }
 
                 let label = `[${refreshRate}] ${namespaceName} / ${apiResourceName} @ ${timestamp}`;
@@ -315,7 +324,9 @@ class App {
                 else {
                     self.client.listResourcesFormatted(self.state.namespace.metadata.name, [
                         self.state.apiResource.resource.name
-                    ], (error, lines) => {
+                    ], (error, lines) => { 
+                        let lastActive = activeResource;
+                        let lastActiveIndex = activeResourceIndex;
                         self.resourceList.setLabel(label);
                         self.resourceList.clearItems();
                         if (error) {
@@ -327,6 +338,8 @@ class App {
                                 self.resourceList.addItem(line);
                             }
                         }
+                        self.resourceList.select(lastActiveIndex);
+                        self.resourceList.scrollTo(lastActiveIndex);
                         // self.resourceList.focus();
                         self.screen.render();
                     });

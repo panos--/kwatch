@@ -1,4 +1,4 @@
-import * as k8sClient from "./client";
+import * as k8sClient from "./lib/client";
 
 const client = new k8sClient.K8sClient();
 

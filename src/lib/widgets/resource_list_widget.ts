@@ -1,8 +1,7 @@
 import * as blessed from "blessed";
-import { AppState } from "./app_state";
-import * as k8sClient from "./client";
-import { Action } from "./actions/action";
-import { DescribeAction } from "./actions/describe_action";
+import { AppState } from "../app_state";
+import * as k8sClient from "../client";
+import { ResourceActionMenu } from "./resource_action_menu";
 
 export class ResourceListWidget {
     private state: AppState;
@@ -25,7 +24,7 @@ export class ResourceListWidget {
     private timeout: NodeJS.Timeout = null
 
     private resourceList: blessed.Widgets.ListElement;
-    private contextMenu: blessed.Widgets.ListElement;
+    private actionMenu: ResourceActionMenu;
 
     public constructor(state: AppState, client: k8sClient.K8sClient) {
         this.state = state;
@@ -34,7 +33,6 @@ export class ResourceListWidget {
     }
 
     private init() {
-        this.initContextMenuActions();
         this.resourceList = blessed.list({
             top: 0,
             left: 0,
@@ -78,46 +76,7 @@ export class ResourceListWidget {
             this.activeResource = item;
             this.activeResourceIndex = index;
         });
-
-        this.contextMenu = blessed.list({
-            top: 15,
-            left: 55,
-            width: 40,
-            height: 15,
-            mouse: true,
-            keys: true,
-            border: "line",
-            hidden: true,
-            items: ["foo", "bar", "baz", "qux"],
-            shrink: true,
-            style: {
-                item: {
-                    hover: {
-                        bg: "blue",
-                        fg: "white",
-                    }
-                },
-                selected: {
-                    bg: "blue",
-                    fg: "white",
-                    bold: true
-                }
-            },
-        });
-        this.contextMenu.style.border.bg = 12;
-        this.contextMenu.on("blur", () => {
-            this.closeContextMenu();
-        });
-        this.contextMenu.on("cancel", () => {
-            this.closeContextMenu();
-        });
-        this.contextMenu.on("select", (item, index) => {
-            this.closeContextMenu();
-            console.log(`Selected item number ${index}:`, item.getText());
-            this.executeContextMenuAction(index);
-        });
-        this.resourceList.append(this.contextMenu);
-        this.resourceList.on("select", (item, index) => {
+        this.resourceList.on("select", (item) => {
             let line = item.getText();
             if (line.trim().length == 0) {
                 return;
@@ -156,8 +115,11 @@ export class ResourceListWidget {
             if (apiResource === undefined) {
                 return;
             }
-            this.showContextMenu(this.lastNamespaceName, apiResource, resource);
+            this.showActionMenu(this.lastNamespaceName, apiResource, resource);
         });
+
+        this.actionMenu = new ResourceActionMenu(this.state, this.client);
+        this.actionMenu.appendTo(this.resourceList);
 
         this.run();
     }
@@ -173,54 +135,14 @@ export class ResourceListWidget {
         }
     }
 
-    private showContextMenu(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
+    private showActionMenu(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
         this.freeze();
-        this.populateContextMenu(namespace, apiResource, resource);
-        this.contextMenu.setIndex(100);
-        this.contextMenu.show();
-        this.contextMenu.focus();
-        this.render();
-    }
-
-    private contextMenuActions: Action[];
-    private activeContextMenuActions: (() => void)[];
-
-    private initContextMenuActions() {
-        this.contextMenuActions = [
-            new DescribeAction(),
-        ];
-    }
-    private populateContextMenu(namespaceName: string, apiResource: k8sClient.APIResource, resource: string) {
-        const namespace = this.state.namespaces.find((element) => {
-            return element.metadata.name == namespaceName;
-        });
-        if (!namespace) {
-            throw "namespace not found";
-        }
-        this.contextMenu.clearItems();
-        this.activeContextMenuActions = [];
-        this.contextMenuActions
-            .filter((action) => { return action.appliesTo(apiResource); })
-            .forEach((action) => {
-                this.activeContextMenuActions.push(() => {
-                    action.execute(this.client, this.screen, namespace, apiResource, resource);
-                });
-                this.contextMenu.addItem(action.getLabel());
-            });
-    }
-
-    private executeContextMenuAction(index: number) {
-        this.activeContextMenuActions[index]();
-    }
-
-    private closeContextMenu() {
-        this.contextMenu.hide();
-        this.render();
-        this.unfreeze();
+        this.actionMenu.show(namespace, apiResource, resource);
     }
 
     private update() {
         if (!this.frozen && this.state.namespace !== undefined && this.state.apiResource !== undefined) {
+            // TODO: move all into closure below
             let refreshRate = this.interval == -1 ? "Paused" : (this.intervals[this.interval] + "s");
             let namespaceName;
             let apiResourceName;

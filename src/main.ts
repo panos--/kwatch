@@ -3,7 +3,7 @@ import { V1Namespace } from "@kubernetes/client-node";
 import * as blessed from "blessed";
 import * as k8sClient from "./lib/client";
 import { AppState } from "./lib/app_state";
-import { ResourceListWidget } from "./lib/resource_list_widget";
+import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
 
 class App {
     private client: k8sClient.K8sClient;

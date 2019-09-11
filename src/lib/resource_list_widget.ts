@@ -137,7 +137,7 @@ export class ResourceListWidget {
             }
             else if (resParts.length == 1) {
                 // TODO: must use the one stored in resourceList, not in state
-                apiResourceName = this.state.apiResource.resource.name;
+                apiResourceName = this.lastApiResourceName;
                 resource = resParts[0];
             }
             else {
@@ -153,7 +153,7 @@ export class ResourceListWidget {
             if (apiResource === undefined) {
                 return;
             }
-            this.showContextMenu(apiResource, resource);
+            this.showContextMenu(this.lastNamespaceName, apiResource, resource);
         });
 
         this.run();
@@ -170,9 +170,9 @@ export class ResourceListWidget {
         }
     }
 
-    private showContextMenu(apiResource: k8sClient.APIResource, resource: string) {
+    private showContextMenu(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
         this.freeze();
-        this.populateContextMenu(apiResource, resource);
+        this.populateContextMenu(namespace, apiResource, resource);
         this.contextMenu.setIndex(100);
         this.contextMenu.show();
         this.contextMenu.focus();
@@ -180,12 +180,12 @@ export class ResourceListWidget {
     }
 
     private contextMenuActions: (() => void)[] = [];
-    private populateContextMenu(apiResource: k8sClient.APIResource, resource: string) {
+    private populateContextMenu(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
         this.contextMenu.clearItems();
         this.contextMenuActions = [];
         this.contextMenu.addItem("Describe");
         this.contextMenuActions.push(() => {
-            this.actionDescribe(apiResource, resource);
+            this.actionDescribe(namespace, apiResource, resource);
         });
     }
 
@@ -193,8 +193,45 @@ export class ResourceListWidget {
         this.contextMenuActions[index]();
     }
 
-    private actionDescribe(apiResource: k8sClient.APIResource, resource: string) {
-        console.log(`would describe ${apiResource.getName()}/${resource}`);
+    private actionDescribe(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
+        // console.log(`would describe ${namespace}, ${apiResource.getName()}/${resource}`);
+        this.client.describeResource(namespace, apiResource, resource, (error, lines) => {
+            let box = blessed.box({
+                top: 3,
+                left: 5,
+                height: "100%-6",
+                width: "100%-10",
+                mouse: true,
+                keys: true,
+                border: "line",
+                scrollable: true,
+                scrollbar:  {
+                    ch: " ",
+                    track: {
+                        bg: "cyan"
+                    },
+                    style: {
+                        inverse: true
+                    }
+                },
+            });
+            box.key("escape", () => {
+                box.destroy();
+                this.screen.render();
+            });
+            box.setIndex(100);
+            this.screen.append(box);
+            
+            if (error) {
+                console.log(error.message);
+                return;
+            }
+            else {
+                box.insertBottom(lines);
+            }
+
+            this.screen.render();
+        });
     }
 
     private closeContextMenu() {

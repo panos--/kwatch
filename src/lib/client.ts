@@ -293,4 +293,22 @@ export class K8sClient {
             cb(error, stdout.toLocaleString().split("\n"));
         });
     }
+    
+    public async describeResource(namespace: string | null, apiResource: APIResource, resource: string, cb: (error: Error, lines: any[]) => void) {
+        if (namespace !== null && namespace.length == 0) {
+            throw "invalid argument: namespace must not be empty";
+        }
+
+        let args = [];
+        if (namespace !== null) {
+            args.push("-n", namespace);
+        }
+        args.push("describe", apiResource.resource.name, resource);
+
+        childProcess.execFile("kubectl", args, {
+            encoding: null,
+        }, (error, stdout) => {
+            cb(error, stdout.toLocaleString().split("\n"));
+        });
+    }
 }

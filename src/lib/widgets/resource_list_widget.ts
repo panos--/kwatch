@@ -1,11 +1,12 @@
 import * as blessed from "blessed";
 import { AppState } from "../app_state";
-import * as k8sClient from "../client";
+import { K8sClient, APIResource } from "../client";
 import { ResourceActionMenu } from "./resource_action_menu";
+import { V1Namespace } from "@kubernetes/client-node";
 
 export class ResourceListWidget {
     private state: AppState;
-    private client: k8sClient.K8sClient;
+    private client: K8sClient;
 
     private screen: blessed.Widgets.Screen = null;
 
@@ -14,19 +15,20 @@ export class ResourceListWidget {
     private interval = 3;
     private intervals = [10, 5, 2, 1, 0.5];
 
-    private lastNamespaceName = "";
-    private lastApiResourceName = "";
-    private lastTimestamp = "";
-
-    private activeResource: blessed.Widgets.BlessedElement = null;
+    // the currently selected list entry
     private activeResourceIndex = 0;
+
+    // the parameters for which the list currently shows data
+    private currentNamespace: V1Namespace = null;
+    private currentAPIResource: APIResource = null;
+    private currentTime: Date = null;
 
     private timeout: NodeJS.Timeout = null
 
     private resourceList: blessed.Widgets.ListElement;
     private actionMenu: ResourceActionMenu;
 
-    public constructor(state: AppState, client: k8sClient.K8sClient) {
+    public constructor(state: AppState, client: K8sClient) {
         this.state = state;
         this.client = client;
         this.init();
@@ -73,7 +75,6 @@ export class ResourceListWidget {
             this.render();
         });
         this.resourceList.on("select item", (item, index) => {
-            this.activeResource = item;
             this.activeResourceIndex = index;
         });
         this.resourceList.on("select", (item) => {
@@ -85,12 +86,14 @@ export class ResourceListWidget {
             if (parts.length == 0) {
                 return;
             }
+
             let maybePrefixedResource = parts[0];
             if (maybePrefixedResource == maybePrefixedResource.toLocaleUpperCase()) {
                 // not a resource but a resource table header
                 return;
             }
-            let apiResourceName: string = null;
+
+            let apiResource;
             let resource;
             let resParts = maybePrefixedResource.split(/\//, 2);
             if (resParts.length == 0) {
@@ -98,24 +101,24 @@ export class ResourceListWidget {
                 return;
             }
             else if (resParts.length == 1) {
-                // TODO: must use the one stored in resourceList, not in state
-                apiResourceName = this.lastApiResourceName;
+                apiResource = this.currentAPIResource;
                 resource = resParts[0];
             }
             else {
-                apiResourceName = resParts[0];
+                let apiResourceName = resParts[0];
+                apiResource = this.state.apiResources.find((apiResource) => {
+                    if (apiResource.resource.name == apiResourceName) {
+                        return true;
+                    }
+                });
+                if (apiResource === undefined) {
+                    return;
+                }
+
                 resource = resParts[1];
             }
 
-            let apiResource = this.state.apiResources.find((apiResource) => {
-                if (apiResource.resource.name == apiResourceName) {
-                    return true;
-                }
-            });
-            if (apiResource === undefined) {
-                return;
-            }
-            this.showActionMenu(this.lastNamespaceName, apiResource, resource);
+            this.showActionMenu(this.currentNamespace, apiResource, resource);
         });
 
         this.actionMenu = new ResourceActionMenu(this.state, this.client);
@@ -135,69 +138,87 @@ export class ResourceListWidget {
         }
     }
 
-    private showActionMenu(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
+    private showActionMenu(namespace: V1Namespace, apiResource: APIResource, resource: string) {
         this.freeze();
         this.actionMenu.show(namespace, apiResource, resource);
     }
 
     private update() {
-        if (!this.frozen && this.state.namespace !== undefined && this.state.apiResource !== undefined) {
-            // TODO: move all into closure below
-            let refreshRate = this.interval == -1 ? "Paused" : (this.intervals[this.interval] + "s");
-            let namespaceName;
-            let apiResourceName;
-            let timestamp;
-            if (this.paused) {
-                refreshRate = "Paused";
-                namespaceName = this.lastNamespaceName;
-                apiResourceName = this.lastApiResourceName;
-                timestamp = this.lastTimestamp;
-            }
-            else {
-                namespaceName = this.lastNamespaceName = this.state.namespace.metadata.name;
-                apiResourceName = this.lastApiResourceName = this.state.apiResource.resource.name;
-                let now = new Date();
-                timestamp = this.lastTimestamp = now.toLocaleString(undefined, {
-                    hour12: false,
-                }) + "." + now.getMilliseconds();
-            }
-
-            let label = `[${refreshRate}] ${namespaceName} / ${apiResourceName} @ ${timestamp}`;
-
-            if (this.paused) {
-                this.resourceList.setLabel(label);
-                this.render();
-                return;
-            }
-            else {
-                this.client.listResourcesFormatted(this.state.namespace.metadata.name, [
-                    this.state.apiResource.resource.name
-                ], (error, lines) => {
-                    if (this.paused || this.frozen) {
-                        return;
-                    }
-                    let lastActive = this.activeResource;
-                    let lastActiveIndex = this.activeResourceIndex;
-                    this.resourceList.setLabel(label);
-                    this.resourceList.clearItems();
-                    if (error) {
-                        this.resourceList.addItem(error.name);
-                        this.resourceList.addItem(error.message);
-                    }
-                    else {
-                        for (let line of lines) {
-                            this.resourceList.addItem(line);
-                        }
-                    }
-                    this.resourceList.select(lastActiveIndex);
-                    this.resourceList.scrollTo(lastActiveIndex);
-                    // self.resourceList.focus();
-                    this.render();
-                });
-            }
+        function reschedule() {
+            this.timeout = setTimeout(() => { this.update(); }, this.intervals[this.interval] * 1000);
         }
 
-        this.timeout = setTimeout(() => { this.update(); }, this.intervals[this.interval] * 1000);
+        if (this.frozen || this.state.namespace === undefined || this.state.apiResource === undefined) {
+            reschedule.call(this);
+            return;
+        }
+
+        let namespace: V1Namespace;
+        let apiResource: APIResource;
+        let time: Date;
+        let refreshRate: string;
+
+        if (this.paused) {
+            if (this.currentNamespace === null || this.currentAPIResource === null || this.currentTime === null) {
+                return;
+            }
+            namespace = this.currentNamespace;
+            apiResource = this.currentAPIResource;
+            time = this.currentTime;
+            refreshRate = "Paused";
+        }
+        else {
+            namespace = this.state.namespace;
+            apiResource = this.state.apiResource;
+            time = new Date();
+            refreshRate = this.intervals[this.interval] + "s";
+        }
+
+        let namespaceName = this.state.namespace.metadata.name;
+        let apiResourceName = this.state.apiResource.resource.name;
+        let timestamp = time.toLocaleString(undefined, {
+            hour12: false,
+        }) + "." + time.getMilliseconds();
+
+        let label = `[${refreshRate}] ${namespaceName} / ${apiResourceName} @ ${timestamp}`;
+
+        if (this.paused) {
+            this.resourceList.setLabel(label);
+            this.render();
+            return;
+        }
+
+        this.client.listResourcesFormatted(namespace.metadata.name, [
+            apiResource.resource.name
+        ], (error, lines) => {
+            if (this.paused || this.frozen) {
+                return;
+            }
+
+            let activeResourceIndex = this.activeResourceIndex;
+
+            this.currentNamespace = namespace;
+            this.currentAPIResource = apiResource;
+            this.currentTime = time;
+
+            this.resourceList.setLabel(label);
+            this.resourceList.clearItems();
+            if (error) {
+                this.resourceList.addItem(error.name);
+                this.resourceList.addItem(error.message);
+            }
+            else {
+                for (let line of lines) {
+                    this.resourceList.addItem(line);
+                }
+            }
+            this.resourceList.select(activeResourceIndex);
+            this.resourceList.scrollTo(activeResourceIndex);
+
+            this.render();
+        });
+
+        reschedule.call(this);
     }
 
     public cycleRefreshFaster() {

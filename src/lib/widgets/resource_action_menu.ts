@@ -3,6 +3,7 @@ import { K8sClient, APIResource } from "../client";
 import { AppState } from "../app_state";
 import { Action } from "../actions/action";
 import { DescribeAction } from "../actions/describe_action";
+import { V1Namespace } from "@kubernetes/client-node";
 
 export class ResourceActionMenu {
     private state: AppState;
@@ -58,7 +59,7 @@ export class ResourceActionMenu {
         this.initContextMenuActions();
     }
 
-    public show(namespace: string, apiResource: APIResource, resource: string) {
+    public show(namespace: V1Namespace, apiResource: APIResource, resource: string) {
         this.populateContextMenu(namespace, apiResource, resource);
         this.contextMenu.setIndex(100);
         this.contextMenu.show();
@@ -86,13 +87,8 @@ export class ResourceActionMenu {
             new DescribeAction(),
         ];
     }
-    private populateContextMenu(namespaceName: string, apiResource: APIResource, resource: string) {
-        const namespace = this.state.namespaces.find((element) => {
-            return element.metadata.name == namespaceName;
-        });
-        if (!namespace) {
-            throw "namespace not found";
-        }
+
+    private populateContextMenu(namespace: V1Namespace, apiResource: APIResource, resource: string) {
         this.contextMenu.clearItems();
         this.activeContextMenuActions = [];
         this.contextMenuActions

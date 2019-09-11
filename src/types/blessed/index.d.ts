@@ -1716,12 +1716,12 @@ export namespace Widgets {
         /**
          * Calculated width.
          */
-        width: number | string;
+        width: number;
 
         /**
          * Calculated height.
          */
-        height: number | string;
+        height: number;
 
         /**
          * Calculated relative top offset.

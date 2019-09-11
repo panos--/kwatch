@@ -47,7 +47,7 @@ class App {
             self.state.apiResources = resources;
             self.apiList.clearItems();
             for (let resource of resources) {
-                self.apiList.addItem(resource.getName());
+                self.apiList.addItem(resource.getFullName());
             }
             self.apiList.select(0);
             self.apiList.emit("select", null, 0);

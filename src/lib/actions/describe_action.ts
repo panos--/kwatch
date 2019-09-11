@@ -8,12 +8,11 @@ export class DescribeAction implements Action {
         return "Describe";
     }
 
-    public appliesTo(apiResource: APIResource): boolean {
+    public appliesTo(): boolean {
         return true;
     }
 
     public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
-        // console.log(`would describe ${namespace}, ${apiResource.getName()}/${resource}`);
         client.describeResource(namespace, apiResource, resource, (error, lines) => {
             let box = blessed.box({
                 top: 3,
@@ -24,6 +23,7 @@ export class DescribeAction implements Action {
                 keys: true,
                 border: "line",
                 scrollable: true,
+                alwaysScroll: true,
                 scrollbar:  {
                     ch: " ",
                     track: {
@@ -34,11 +34,20 @@ export class DescribeAction implements Action {
                     }
                 },
             });
+            box.setIndex(100);
+            box.setLabel(
+                (apiResource.resource.namespaced ? namespace.metadata.name + " / " : "")
+                + apiResource.getCapitalizedSingularName() + " " + resource);
+            box.key("pageup", () => {
+                box.scroll(-(box.height / 2 | 0) || -1);
+            });
+            box.key("pagedown", () => {
+                box.scroll(box.height / 2 | 0 || 1 );
+            });
             box.key("escape", () => {
                 box.destroy();
                 screen.render();
             });
-            box.setIndex(100);
             screen.append(box);
 
             if (error) {

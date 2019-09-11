@@ -2,6 +2,8 @@ import * as k8s from "@kubernetes/client-node";
 import * as request from "request";
 import * as rp from "request-promise-native";
 import * as childProcess from "child_process";
+import * as pluralize from "pluralize";
+import _ from "lodash";
 
 import { V1APIGroup, V1APIResourceList, V1APIResource, CoreV1Api, V1Namespace } from "@kubernetes/client-node";
 
@@ -142,12 +144,31 @@ export class APIResource {
     }
 
     public getName() {
+        return this.resource.name;
+    }
+
+    public getCapitalizedName() {
+        return _.capitalize(this.resource.name);
+    }
+
+    public getFullName() {
         let name = this.resource.name;
         if (this.group) {
             name += "." + this.group.name;
         }
         name += "/" + this.groupVersion;
         return name;
+    }
+
+    public getSingularName() {
+        if (this.resource.singularName.length > 0) {
+            return this.resource.singularName;
+        }
+        return pluralize.singular(this.resource.name);
+    }
+
+    public getCapitalizedSingularName() {
+        return _.capitalize(this.getSingularName());
     }
 }
 

@@ -230,6 +230,7 @@ export class ResourceListWidget {
                 box.insertBottom(lines);
             }
 
+            box.focus();
             this.screen.render();
         });
     }
@@ -272,6 +273,9 @@ export class ResourceListWidget {
                 this.client.listResourcesFormatted(this.state.namespace.metadata.name, [
                     this.state.apiResource.resource.name
                 ], (error, lines) => {
+                    if (this.paused || this.frozen) {
+                        return;
+                    }
                     let lastActive = this.activeResource;
                     let lastActiveIndex = this.activeResourceIndex;
                     this.resourceList.setLabel(label);

@@ -1,6 +1,8 @@
 import * as blessed from "blessed";
 import { AppState } from "./app_state";
 import * as k8sClient from "./client";
+import { Action } from "./actions/action";
+import { DescribeAction } from "./actions/describe_action";
 
 export class ResourceListWidget {
     private state: AppState;
@@ -32,6 +34,7 @@ export class ResourceListWidget {
     }
 
     private init() {
+        this.initContextMenuActions();
         this.resourceList = blessed.list({
             top: 0,
             left: 0,
@@ -179,60 +182,35 @@ export class ResourceListWidget {
         this.render();
     }
 
-    private contextMenuActions: (() => void)[] = [];
-    private populateContextMenu(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
-        this.contextMenu.clearItems();
-        this.contextMenuActions = [];
-        this.contextMenu.addItem("Describe");
-        this.contextMenuActions.push(() => {
-            this.actionDescribe(namespace, apiResource, resource);
+    private contextMenuActions: Action[];
+    private activeContextMenuActions: (() => void)[];
+
+    private initContextMenuActions() {
+        this.contextMenuActions = [
+            new DescribeAction(),
+        ];
+    }
+    private populateContextMenu(namespaceName: string, apiResource: k8sClient.APIResource, resource: string) {
+        const namespace = this.state.namespaces.find((element) => {
+            return element.metadata.name == namespaceName;
         });
+        if (!namespace) {
+            throw "namespace not found";
+        }
+        this.contextMenu.clearItems();
+        this.activeContextMenuActions = [];
+        this.contextMenuActions
+            .filter((action) => { return action.appliesTo(apiResource); })
+            .forEach((action) => {
+                this.activeContextMenuActions.push(() => {
+                    action.execute(this.client, this.screen, namespace, apiResource, resource);
+                });
+                this.contextMenu.addItem(action.getLabel());
+            });
     }
 
     private executeContextMenuAction(index: number) {
-        this.contextMenuActions[index]();
-    }
-
-    private actionDescribe(namespace: string, apiResource: k8sClient.APIResource, resource: string) {
-        // console.log(`would describe ${namespace}, ${apiResource.getName()}/${resource}`);
-        this.client.describeResource(namespace, apiResource, resource, (error, lines) => {
-            let box = blessed.box({
-                top: 3,
-                left: 5,
-                height: "100%-6",
-                width: "100%-10",
-                mouse: true,
-                keys: true,
-                border: "line",
-                scrollable: true,
-                scrollbar:  {
-                    ch: " ",
-                    track: {
-                        bg: "cyan"
-                    },
-                    style: {
-                        inverse: true
-                    }
-                },
-            });
-            box.key("escape", () => {
-                box.destroy();
-                this.screen.render();
-            });
-            box.setIndex(100);
-            this.screen.append(box);
-            
-            if (error) {
-                console.log(error.message);
-                return;
-            }
-            else {
-                box.insertBottom(lines);
-            }
-
-            box.focus();
-            this.screen.render();
-        });
+        this.activeContextMenuActions[index]();
     }
 
     private closeContextMenu() {

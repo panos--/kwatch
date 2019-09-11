@@ -293,15 +293,16 @@ export class K8sClient {
             cb(error, stdout.toLocaleString().split("\n"));
         });
     }
-    
-    public async describeResource(namespace: string | null, apiResource: APIResource, resource: string, cb: (error: Error, lines: any[]) => void) {
-        if (namespace !== null && namespace.length == 0) {
-            throw "invalid argument: namespace must not be empty";
-        }
+
+    public async describeResource(
+        namespace: V1Namespace | null,
+        apiResource: APIResource,
+        resource: string,
+        cb: (error: Error, lines: any[]) => void) {
 
         let args = [];
         if (namespace !== null) {
-            args.push("-n", namespace);
+            args.push("-n", namespace.metadata.name);
         }
         args.push("describe", apiResource.resource.name, resource);
 

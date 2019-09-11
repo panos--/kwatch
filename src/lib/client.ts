@@ -333,4 +333,23 @@ export class K8sClient {
             cb(error, stdout.toLocaleString().split("\n"));
         });
     }
+
+    public async getResourceAsYaml(
+        namespace: V1Namespace | null,
+        apiResource: APIResource,
+        resource: string,
+        cb: (error: Error, lines: any[]) => void) {
+
+        let args = [];
+        if (namespace !== null) {
+            args.push("-n", namespace.metadata.name);
+        }
+        args.push("get", apiResource.resource.name, resource, "-o", "yaml");
+
+        childProcess.execFile("kubectl", args, {
+            encoding: null,
+        }, (error, stdout) => {
+            cb(error, stdout.toLocaleString().split("\n"));
+        });
+    }
 }

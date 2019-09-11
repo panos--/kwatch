@@ -5,6 +5,7 @@ import { Action } from "../actions/action";
 import { DescribeAction } from "../actions/describe_action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { ShowYamlAction } from "../actions/show_yaml_action";
+import { DeleteAction } from "../actions/delete_action";
 
 export class ResourceActionMenu {
     private state: AppState;
@@ -87,6 +88,7 @@ export class ResourceActionMenu {
         this.contextMenuActions = [
             new DescribeAction(),
             new ShowYamlAction(),
+            new DeleteAction(),
         ];
     }
 

@@ -123,6 +123,7 @@ export class ResourceListWidget {
 
         this.actionMenu = new ResourceActionMenu(this.state, this.client);
         this.actionMenu.appendTo(this.resourceList);
+        this.actionMenu.onAfterClose(() => { this.unfreeze(); });
 
         this.run();
     }

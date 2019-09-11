@@ -352,4 +352,23 @@ export class K8sClient {
             cb(error, stdout.toLocaleString().split("\n"));
         });
     }
+
+    public async deleteResource(
+        namespace: V1Namespace | null,
+        apiResource: APIResource,
+        resource: string,
+        cb: (error: Error) => void) {
+
+        let args = [];
+        if (namespace !== null) {
+            args.push("-n", namespace.metadata.name);
+        }
+        args.push("delete", apiResource.resource.name, resource);
+
+        childProcess.execFile("kubectl", args, {
+            encoding: null,
+        }, (error) => {
+            cb(error);
+        });
+    }
 }

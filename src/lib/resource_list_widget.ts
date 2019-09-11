@@ -52,11 +52,13 @@ export class ResourceListWidget {
             style: {
                 item: {
                     hover: {
-                        bg: "blue"
+                        bg: "blue",
+                        fg: "white",
                     }
                 },
                 selected: {
                     bg: "blue",
+                    fg: "white",
                     bold: true
                 }
             },
@@ -88,11 +90,13 @@ export class ResourceListWidget {
             style: {
                 item: {
                     hover: {
-                        bg: "blue"
+                        bg: "blue",
+                        fg: "white",
                     }
                 },
                 selected: {
                     bg: "blue",
+                    fg: "white",
                     bold: true
                 }
             },
@@ -107,6 +111,7 @@ export class ResourceListWidget {
         this.contextMenu.on("select", (item, index) => {
             this.closeContextMenu();
             console.log(`Selected item number ${index}:`, item.getText());
+            this.executeContextMenuAction(index);
         });
         this.resourceList.append(this.contextMenu);
         this.resourceList.on("select", (item, index) => {
@@ -167,10 +172,29 @@ export class ResourceListWidget {
 
     private showContextMenu(apiResource: k8sClient.APIResource, resource: string) {
         this.freeze();
+        this.populateContextMenu(apiResource, resource);
         this.contextMenu.setIndex(100);
         this.contextMenu.show();
         this.contextMenu.focus();
         this.render();
+    }
+
+    private contextMenuActions: (() => void)[] = [];
+    private populateContextMenu(apiResource: k8sClient.APIResource, resource: string) {
+        this.contextMenu.clearItems();
+        this.contextMenuActions = [];
+        this.contextMenu.addItem("Describe");
+        this.contextMenuActions.push(() => {
+            this.actionDescribe(apiResource, resource);
+        });
+    }
+
+    private executeContextMenuAction(index: number) {
+        this.contextMenuActions[index]();
+    }
+
+    private actionDescribe(apiResource: k8sClient.APIResource, resource: string) {
+        console.log(`would describe ${apiResource.getName()}/${resource}`);
     }
 
     private closeContextMenu() {

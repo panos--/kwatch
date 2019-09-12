@@ -157,7 +157,7 @@ class App {
         });
 
         this.apiList = blessed.list({
-            label: "Resources",
+            label: "API Resources",
             top: "20%",
             left: 0,
             width: "100%",

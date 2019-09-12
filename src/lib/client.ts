@@ -3,6 +3,7 @@ import * as request from "request";
 import * as rp from "request-promise-native";
 import * as childProcess from "child_process";
 import * as pluralize from "pluralize";
+import async from "async";
 import _ from "lodash";
 
 import { V1APIGroup, V1APIResourceList, V1APIResource, CoreV1Api, V1Namespace } from "@kubernetes/client-node";
@@ -267,13 +268,29 @@ export class K8sClient {
 
         const apisApi = this.kubeConfig.makeApiClient(k8s.ApisApi);
         let apisApiRes = await apisApi.getAPIVersions();
-        for (let group of apisApiRes.body.groups) {
-            for (let resource of await this.getListableExtensionAPIResources(group)) {
-                resources.push(resource);
-            }
-        }
+        // for (let group of apisApiRes.body.groups) {
+        //     for (let resource of await this.getListableExtensionAPIResources(group)) {
+        //         resources.push(resource);
+        //     }
+        // }
 
-        cb(resources);
+        const self = this;
+        async.mapLimit(apisApiRes.body.groups, 3, async function (group) {
+            console.log(`fetching group ${group.name}`);
+            return await self.getListableExtensionAPIResources(group);
+        }, 
+        (err, results: APIResource[][]) => {
+            if (err) {
+                throw err;
+            }
+            console.log("retrieving result");
+            for (const resByGroup of results) {
+                for (const resource of resByGroup) {
+                    resources.push(resource);
+                }
+            }
+            cb(resources);
+        });
     }
 
     public getNamespaces(cb: (namespaces: V1Namespace[]) => void) {

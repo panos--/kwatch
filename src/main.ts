@@ -131,7 +131,6 @@ class App {
                 },
             },
         });
-        this.namespaceList.focus();
         this.namespaceList.on("focus", () => {
             this.namespaceList.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
             this.screen.render();
@@ -269,6 +268,7 @@ class App {
         });
 
         this.screen.render();
+        this.namespaceList.focus();
         this.updateContents();
     }
 

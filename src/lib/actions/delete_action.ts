@@ -8,8 +8,8 @@ export class DeleteAction implements Action {
         return "Delete";
     }
 
-    public appliesTo(): boolean {
-        return true;
+    public appliesTo(apiResource: APIResource): boolean {
+        return apiResource.resource.verbs.includes("delete");
     }
 
     public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {

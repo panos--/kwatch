@@ -4,6 +4,7 @@ import * as blessed from "blessed";
 import * as k8sClient from "./lib/client";
 import { AppState } from "./lib/app_state";
 import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
+import { AppDefaults } from "./lib/app_defaults";
 
 class App {
     private client: k8sClient.K8sClient;
@@ -118,18 +119,20 @@ class App {
             style: {
                 item: {
                     hover: {
-                        bg: "blue"
+                        bg: "blue",
+                        fg: "white",
                     }
                 },
                 selected: {
                     bg: "blue",
+                    fg: "white",
                     bold: true
                 },
             },
         });
         this.namespaceList.focus();
         this.namespaceList.on("focus", () => {
-            this.namespaceList.style.border.bg = 12;
+            this.namespaceList.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
             this.screen.render();
         });
         this.namespaceList.on("blur", () => {
@@ -138,7 +141,7 @@ class App {
         });
         this.namespaceList.on("select", (boxElement, index) => {
             this.state.namespace = self.state.namespaces[index];
-            this.namespaceList.getItem(index).fg = 3;
+            // this.namespaceList.getItem(index).fg = 3;
         });
 
         this.apiList = blessed.list({
@@ -162,17 +165,19 @@ class App {
             style: {
                 item: {
                     hover: {
-                        bg: "blue"
+                        bg: "blue",
+                        fg: "white",
                     }
                 },
                 selected: {
                     bg: "blue",
+                    fg: "white",
                     bold: true
                 }
             },
         });
         this.apiList.on("focus", () => {
-            this.apiList.style.border.bg = 12;
+            this.apiList.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
             this.screen.render();
         });
         this.apiList.on("blur", () => {

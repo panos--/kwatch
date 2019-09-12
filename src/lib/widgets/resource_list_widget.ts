@@ -3,6 +3,7 @@ import { AppState } from "../app_state";
 import { K8sClient, APIResource } from "../client";
 import { ResourceActionMenu } from "./resource_action_menu";
 import { V1Namespace } from "@kubernetes/client-node";
+import { AppDefaults } from "../app_defaults";
 
 export class ResourceListWidget {
     private state: AppState;
@@ -67,7 +68,7 @@ export class ResourceListWidget {
             },
         });
         this.resourceList.on("focus", () => {
-            this.resourceList.style.border.bg = 12;
+            this.resourceList.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
             this.render();
         });
         this.resourceList.on("blur", () => {

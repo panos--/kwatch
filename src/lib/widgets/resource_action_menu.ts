@@ -6,6 +6,7 @@ import { DescribeAction } from "../actions/describe_action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { ShowYamlAction } from "../actions/show_yaml_action";
 import { DeleteAction } from "../actions/delete_action";
+import { AppDefaults } from "../app_defaults";
 
 export class ResourceActionMenu {
     private state: AppState;
@@ -46,7 +47,7 @@ export class ResourceActionMenu {
                 }
             },
         });
-        this.contextMenu.style.border.bg = 12;
+        this.contextMenu.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
         this.contextMenu.on("blur", () => {
             this.close();
         });

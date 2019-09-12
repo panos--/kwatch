@@ -140,9 +140,13 @@ class App {
             this.namespaceList.style.border.bg = -1;
             this.screen.render();
         });
+        let namespaceListFirstSelect = true;
         this.namespaceList.on("select", (boxElement, index) => {
             this.state.namespace = self.state.namespaces[index];
-            // this.namespaceList.getItem(index).fg = 3;
+            if (!namespaceListFirstSelect) {
+                this.screen.focusNext();
+            }
+            namespaceListFirstSelect = false;
         });
 
         this.apiList = blessed.list({
@@ -185,8 +189,13 @@ class App {
             this.apiList.style.border.bg = -1;
             this.screen.render();
         });
+        let apiListFirstSelect = true;
         this.apiList.on("select", (boxElement, index) => {
             self.state.apiResource = self.state.apiResources[index];
+            if (!apiListFirstSelect) {
+                this.screen.focusNext();
+            }
+            apiListFirstSelect = false;
         });
 
         leftPane.append(this.namespaceList);

@@ -27,23 +27,30 @@ class App {
         this.client = new k8sClient.K8sClient(kc);
     }
 
-    private updateNamespaceList(doneCb: () => void) {
-        const self = this;
-        this.client.getNamespaces((namespaces: V1Namespace[]) => {
-            self.state.namespaces = namespaces;
-            self.namespaceList.clearItems();
-            for (let namespace of namespaces) {
-                self.namespaceList.addItem(namespace.metadata.name);
+    private async updateNamespaceList(doneCb: () => void) {
+        this.client.getNamespaces((error, namespaces) => {
+            if (error) {
+                console.log("Error updating namespace list:", error);
+                return;
             }
-            self.namespaceList.select(0);
-            self.namespaceList.emit("select", null, 0);
+            this.state.namespaces = namespaces;
+            this.namespaceList.clearItems();
+            for (let namespace of namespaces) {
+                this.namespaceList.addItem(namespace.metadata.name);
+            }
+            this.namespaceList.select(0);
+            this.namespaceList.emit("select", null, 0);
             doneCb();
         });
     }
 
-    private updateApiList(doneCb: () => void) {
+    private async updateApiList(doneCb: () => void) {
         const self = this;
-        this.client.getListableAPIResources(resources => {
+        this.client.getListableAPIResources((error, resources) => {
+            if (error) {
+                console.log(error);
+                return;
+            }
             self.state.apiResources = resources;
             self.apiList.clearItems();
             for (let resource of resources) {
@@ -52,16 +59,16 @@ class App {
             self.apiList.select(0);
             self.apiList.emit("select", null, 0);
             doneCb();
+        }).catch(e => {
+            console.log(e);
         });
     }
 
     private updateContents() {
         this.updateNamespaceList(() => {
-            // this.namespaceList.focus();
             this.screen.render();
         });
         this.updateApiList(() => {
-            // this.apiList.focus();
             this.screen.render();
         });
     }

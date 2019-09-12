@@ -81,6 +81,7 @@ class App {
             width: "100%",
             height: "100%",
             tags: true,
+            focusable: false,
             style: {
                 fg: "white",
                 bg: "magenta",
@@ -95,6 +96,7 @@ class App {
             left: 0,
             width: 30,
             height: "100%",
+            focusable: false,
         });
 
         this.namespaceList = blessed.list({
@@ -199,6 +201,7 @@ class App {
             vi: true,
             alwaysScroll:true,
             scrollable: true,
+            focusable: false, // doesn't work...
             style: {
                 fg: "white",
                 bg: "blue",
@@ -206,6 +209,9 @@ class App {
                     bg: "green"
                 }
             }
+        });
+        mainPane.on("focus", () => {
+            this.screen.focusNext();
         });
 
         let resourceListWidget = new ResourceListWidget(this.state, this.client);

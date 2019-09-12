@@ -12,7 +12,6 @@ class App {
     private screen: blessed.Widgets.Screen;
     private namespaceList: blessed.Widgets.ListElement;
     private apiList: blessed.Widgets.ListElement;
-    private resourceList: blessed.Widgets.ListElement;
 
     private state: AppState;
 

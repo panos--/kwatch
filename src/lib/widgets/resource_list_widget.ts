@@ -75,6 +75,18 @@ export class ResourceListWidget {
             this.resourceList.style.border.bg = -1;
             this.render();
         });
+        this.resourceList.key("pageup", () => {
+            // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
+            let offset = -(this.resourceList.height / 2 | 0) || -1;
+            this.resourceList.select(this.activeResourceIndex + offset);
+            this.resourceList.scrollTo(this.activeResourceIndex + offset);
+        });
+        this.resourceList.key("pagedown", () => {
+            // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
+            let offset = (this.resourceList.height / 2 | 0) || -1;
+            this.resourceList.select(this.activeResourceIndex + offset);
+            this.resourceList.scrollTo(this.activeResourceIndex + offset);
+        });
         this.resourceList.on("select item", (item, index) => {
             this.activeResourceIndex = index;
         });

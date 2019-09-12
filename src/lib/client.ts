@@ -235,15 +235,17 @@ export class K8sClient {
         return rp.get(opts);
     }
 
-    private async getExtensionAPIResources(group: V1APIGroup) {
+    private async getListableExtensionAPIResources(group: V1APIGroup) {
         let result: APIResource[] = [];
         let apiGroupResources: APIGroupResources = new APIGroupResources(group);
         for (let versionObj of group.versions) {
             let body = await this.request(`/apis/${versionObj.groupVersion}`);
             let resourceList: V1APIResourceList = ObjectSerializer.deserialize(body, "V1APIResourceList");
-            resourceList.resources.filter(r => !r.name.includes("/")).forEach(r => {
-                apiGroupResources.addResource(r, versionObj.version);
-            });
+            resourceList.resources
+                .filter(r => r.verbs.find(verb => { return verb == "list"; }))
+                .forEach(r => {
+                    apiGroupResources.addResource(r, versionObj.version);
+                });
         }
         for (let versionedResource of apiGroupResources.getNewestResources()) {
             // console.log(`${versionedResource.resource.name}.${group.name}`);
@@ -252,19 +254,21 @@ export class K8sClient {
         return result;
     }
 
-    public async getAPIResources(cb: (resources: APIResource[]) => void) {
+    public async getListableAPIResources(cb: (resources: APIResource[]) => void) {
         let resources: APIResource[] = [];
 
         const coreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
         let coreApiRes = await coreApi.getAPIResources();
-        coreApiRes.body.resources.filter(r => !r.name.includes("/")).forEach((r) => {
-            resources.push(new APIResource(r, "v1"));
-        });
+        coreApiRes.body.resources
+            .filter(r => r.verbs.find(verb => { return verb == "list"; }))
+            .forEach((r) => {
+                resources.push(new APIResource(r, "v1"));
+            });
 
         const apisApi = this.kubeConfig.makeApiClient(k8s.ApisApi);
         let apisApiRes = await apisApi.getAPIVersions();
         for (let group of apisApiRes.body.groups) {
-            for (let resource of await this.getExtensionAPIResources(group)) {
+            for (let resource of await this.getListableExtensionAPIResources(group)) {
                 resources.push(resource);
             }
         }

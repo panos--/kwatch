@@ -43,7 +43,7 @@ class App {
 
     private updateApiList(doneCb: () => void) {
         const self = this;
-        this.client.getAPIResources(resources => {
+        this.client.getListableAPIResources(resources => {
             self.state.apiResources = resources;
             self.apiList.clearItems();
             for (let resource of resources) {

@@ -33,13 +33,15 @@ class App {
                 console.log("Error updating namespace list:", error);
                 return;
             }
+            // update state
             this.state.namespaces = namespaces;
+            // TODO: Remember previously selected
+            this.state.namespace = namespaces.length > 0 ? namespaces[0] : null;
             this.namespaceList.clearItems();
             for (let namespace of namespaces) {
                 this.namespaceList.addItem(namespace.metadata.name);
             }
             this.namespaceList.select(0);
-            this.namespaceList.emit("select", null, 0);
             doneCb();
         });
     }
@@ -51,13 +53,16 @@ class App {
                 console.log(error);
                 return;
             }
+            // update state
             self.state.apiResources = resources;
+            // TODO: Remember previously selected
+            self.state.apiResource = resources.length > 0 ? resources[0] : null;
+            // reflect state in list
             self.apiList.clearItems();
             for (let resource of resources) {
                 self.apiList.addItem(resource.getFullName());
             }
             self.apiList.select(0);
-            self.apiList.emit("select", null, 0);
             doneCb();
         }).catch(e => {
             console.log(e);
@@ -146,13 +151,9 @@ class App {
             this.namespaceList.style.border.bg = -1;
             this.screen.render();
         });
-        let namespaceListFirstSelect = true;
         this.namespaceList.on("select", (boxElement, index) => {
             this.state.namespace = self.state.namespaces[index];
-            if (!namespaceListFirstSelect) {
-                this.screen.focusNext();
-            }
-            namespaceListFirstSelect = false;
+            this.screen.focusNext();
         });
 
         this.apiList = blessed.list({
@@ -195,13 +196,9 @@ class App {
             this.apiList.style.border.bg = -1;
             this.screen.render();
         });
-        let apiListFirstSelect = true;
         this.apiList.on("select", (boxElement, index) => {
             self.state.apiResource = self.state.apiResources[index];
-            if (!apiListFirstSelect) {
-                this.screen.focusNext();
-            }
-            apiListFirstSelect = false;
+            this.screen.focusNext();
         });
 
         leftPane.append(this.namespaceList);

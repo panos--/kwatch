@@ -3167,6 +3167,8 @@ export namespace Widgets {
          * _entire_ scrollback, rather than just what is visible on the screen.
          */
         screenshot(xi?: number, xl?: number, yi?: number, yl?: number): string;
+
+        kill(): void;
     }
 
     interface ImageOptions extends BoxOptions {

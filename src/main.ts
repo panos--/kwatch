@@ -209,11 +209,9 @@ class App {
             left: 30,
             width: this.screen.cols - 30,
             height: "100%",
-            keys: true,
-            vi: true,
+            keys: false,
             alwaysScroll:true,
             scrollable: true,
-            focusable: false, // doesn't work...
             style: {
                 fg: "white",
                 bg: "blue",
@@ -221,9 +219,6 @@ class App {
                     bg: "green"
                 }
             }
-        });
-        mainPane.on("focus", () => {
-            this.screen.focusNext();
         });
 
         let resourceListWidget = new ResourceListWidget(this.state, this.client);

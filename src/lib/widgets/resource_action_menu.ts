@@ -7,6 +7,10 @@ import { V1Namespace } from "@kubernetes/client-node";
 import { ShowYamlAction } from "../actions/show_yaml_action";
 import { DeleteAction } from "../actions/delete_action";
 import { AppDefaults } from "../app_defaults";
+import { ExecAction } from "../actions/exec_action";
+import { ExecLoginBashAction } from "../actions/exec_login_bash_action";
+import { ExecShellAction } from "../actions/exec_shell_action";
+import { ExecLoginShellAction } from "../actions/exec_login_shell_action";
 
 export class ResourceActionMenu {
     private state: AppState;
@@ -89,6 +93,10 @@ export class ResourceActionMenu {
         this.contextMenuActions = [
             new DescribeAction(),
             new ShowYamlAction(),
+            new ExecAction(),
+            new ExecLoginBashAction(),
+            new ExecShellAction(),
+            new ExecLoginShellAction(),
             new DeleteAction(),
         ];
     }

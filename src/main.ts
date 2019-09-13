@@ -1,5 +1,6 @@
+import * as fs from "fs";
+import * as path from "path";
 import * as k8s from "@kubernetes/client-node";
-import { V1Namespace } from "@kubernetes/client-node";
 import * as blessed from "blessed";
 import * as k8sClient from "./lib/client";
 import { AppState } from "./lib/app_state";
@@ -7,6 +8,7 @@ import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
 import { AppDefaults } from "./lib/app_defaults";
 
 class App {
+    private kubeConfig: k8s.KubeConfig;
     private client: k8sClient.K8sClient;
 
     private screen: blessed.Widgets.Screen;
@@ -14,17 +16,31 @@ class App {
     private apiList: blessed.Widgets.ListElement;
 
     private state: AppState;
+    private stateFile: string;
 
     private constructor() {
+        this.kubeConfig = new k8s.KubeConfig();
+        this.kubeConfig.loadFromDefault();
+        this.client = new k8sClient.K8sClient(this.kubeConfig);
         this.state = {
-            namespace: undefined,
+            namespace: null,
             namespaces: [],
-            apiResource: undefined,
+            apiResource: null,
             apiResources: [],
         };
-        const kc = new k8s.KubeConfig();
-        kc.loadFromDefault();
-        this.client = new k8sClient.K8sClient(kc);
+        this.stateFile = process.env.XDG_CONFIG_HOME || (process.env.HOME + "/.config") + "/kui/state.json";
+    }
+
+    private saveAppState() {
+        let data = JSON.stringify(this.state, null, 2);
+        let dir = path.dirname(this.stateFile);
+        fs.mkdirSync(dir, {recursive: true, mode: 0o750});
+        fs.writeFileSync(this.stateFile, data);
+    }
+
+    private loadAppState() {
+        let data = fs.readFileSync(this.stateFile);
+        this.state = JSON.parse(data.toString());
     }
 
     private async updateNamespaceList(doneCb: () => void) {
@@ -35,13 +51,21 @@ class App {
             }
             // update state
             this.state.namespaces = namespaces;
-            // TODO: Remember previously selected
-            this.state.namespace = namespaces.length > 0 ? namespaces[0] : null;
+            let index = -1;
+            if (this.state.namespace !== null) {
+                index = namespaces.findIndex(namespace => {
+                    return namespace.metadata.name == this.state.namespace.metadata.name;
+                });
+            }
+            if (index == -1) {
+                index = 0;
+            }
+            this.state.namespace = namespaces[index];
             this.namespaceList.clearItems();
             for (let namespace of namespaces) {
                 this.namespaceList.addItem(namespace.metadata.name);
             }
-            this.namespaceList.select(0);
+            this.namespaceList.select(index);
             doneCb();
         });
     }
@@ -54,15 +78,23 @@ class App {
                 return;
             }
             // update state
-            self.state.apiResources = resources;
-            // TODO: Remember previously selected
-            self.state.apiResource = resources.length > 0 ? resources[0] : null;
+            this.state.apiResources = resources;
+            let index = -1;
+            if (this.state.apiResource !== null) {
+                index = resources.findIndex(resource => {
+                    return resource.resource.name == this.state.apiResource.resource.name;
+                });
+            }
+            if (index == -1) {
+                index = 0;
+            }
+            this.state.apiResource = resources[index];
             // reflect state in list
             self.apiList.clearItems();
             for (let resource of resources) {
                 self.apiList.addItem(resource.getFullName());
             }
-            self.apiList.select(0);
+            self.apiList.select(index);
             doneCb();
         }).catch(e => {
             console.log(e);
@@ -81,9 +113,20 @@ class App {
     private main() {
         const self = this;
 
+        let logDir = (process.env.XDG_CACHE_HOME || process.env.HOME + "/.cache") + "/kui";
+        fs.mkdirSync(logDir, {recursive: true, mode: 0o750});
+        let logFile = logDir + "/kui.log";
+
         this.screen = blessed.screen({
-            smartCSR: true
+            smartCSR: true,
+            log: logFile,
         });
+
+        try {
+            this.loadAppState();
+        } catch (e) {
+            this.screen.log(`Could not load config: ${e.toString()}`);
+        }
 
         this.screen.title = "KUI";
 
@@ -243,7 +286,8 @@ class App {
         });
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        this.screen.key(["q", "C-c"], function(ch, key) {
+        this.screen.key(["q", "C-c"], (ch, key) => {
+            this.saveAppState();
             return process.exit(0);
         });
 

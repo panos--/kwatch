@@ -162,7 +162,7 @@ export class ResourceListWidget {
             this.timeout = setTimeout(() => { this.update(); }, this.intervals[this.interval] * 1000);
         }
 
-        if (this.frozen || this.state.namespace === undefined || this.state.apiResource === undefined) {
+        if (this.frozen || this.state.namespace === null || this.state.apiResource === null) {
             reschedule.call(this);
             return;
         }

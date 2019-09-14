@@ -12,6 +12,7 @@ import { ExecShellAction } from "../actions/exec_shell_action";
 import { ExecLoginShellAction } from "../actions/exec_login_shell_action";
 import { ExecBashAction } from "../actions/exec_bash_action";
 import { ExecCommandAction } from "../actions/exec_command_action";
+import { ViewLogAction } from "../actions/view_log_action";
 
 export class ResourceActionMenu {
     private static readonly LABEL = "Choose Action";
@@ -101,6 +102,7 @@ export class ResourceActionMenu {
             new ExecShellAction(),
             new ExecLoginShellAction(),
             new ExecCommandAction(),
+            new ViewLogAction(),
             new DeleteAction(),
         ];
     }

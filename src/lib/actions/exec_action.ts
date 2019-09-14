@@ -12,8 +12,6 @@ export abstract class ExecAction implements Action {
         return apiResource.resource.name == "pods";
     }
 
-    protected abstract getCommand(): string[];
-
     public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
         client.getPod(resource, namespace.metadata.name).then(pod => {
             let containers = pod.spec.containers.map(container => { return container.name; });
@@ -22,7 +20,7 @@ export abstract class ExecAction implements Action {
                 throw "no containers found in pod";
             }
             else if (containers.length == 1) {
-                this.executeCommand(screen, namespace, resource, containers[0]);
+                this.executeCommandInternal(screen, namespace, resource, containers[0]);
             }
             else {
                 const lengths = containers.map(value => { return value.length; });
@@ -66,7 +64,7 @@ export abstract class ExecAction implements Action {
                 containerMenu.on("select", (item, index) => {
                     containerMenu.hide();
                     containerMenu.destroy();
-                    this.executeCommand(screen, namespace, resource, containers[index]);
+                    this.executeCommandInternal(screen, namespace, resource, containers[index]);
                 });
                 screen.saveFocus();
                 containerMenu.focus();
@@ -83,26 +81,40 @@ export abstract class ExecAction implements Action {
         });
     }
 
-    private executeCommand(screen: blessed.Widgets.Screen, namespace: V1Namespace, resource: string, container: string) {
-        const command = "kubectl";
-        const args = [
-            "-n",
-            namespace.metadata.name,
-            "exec",
-            "-it",
-            resource,
-            "-c",
-            container,
-            "--"
-        ];
-        args.push.apply(args, this.getCommand());
+    protected abstract executeCommand(screen: blessed.Widgets.Screen, namespace: V1Namespace, resource: string, container: string,
+        execCallback: (command: string, args?: string[]) => void): void;
 
-        BlessedUtils.executeCommand(screen, command, args, (err, success) => {
-            if (err) {
-                console.log(err);
+    private executeCommandInternal(screen: blessed.Widgets.Screen, namespace: V1Namespace, resource: string, container: string) {
+        this.executeCommand(screen, namespace, resource, container, (command: string, args: string[], wait?: boolean) => {
+            const kubectlCmd = "kubectl";
+            const kubectlArgs = [
+                "-n",
+                namespace.metadata.name,
+                "exec",
+                "-it",
+                resource,
+                "-c",
+                container,
+                "--"
+            ];
+            kubectlArgs.push(command);
+            if (args) {
+                kubectlArgs.push.apply(kubectlArgs, args);
             }
-            if (!success) {
-                console.log("Command returned with non-zero exit code");
+
+            const resultCallback = (err, success) => {
+                if (err) {
+                    console.log(err);
+                }
+                if (!success) {
+                    console.log("Command returned with non-zero exit code");
+                }
+            };
+            if (wait) {
+                BlessedUtils.executeCommandWait(screen, kubectlCmd, kubectlArgs, resultCallback);
+            }
+            else {
+                BlessedUtils.executeCommand(screen, kubectlCmd, kubectlArgs, resultCallback);
             }
         });
     }

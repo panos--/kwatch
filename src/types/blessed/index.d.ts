@@ -2895,6 +2895,9 @@ export namespace Widgets {
         constructor(opts: PromptOptions);
 
         options: PromptOptions;
+        _input: TextboxElement;
+        _okay: ButtonElement;
+        _cancel: ButtonElement;
 
         /**
          * Show the prompt and wait for the result of the textbox. Set text and initial value.

@@ -1,3 +1,5 @@
+import * as blessed from "blessed";
+import { V1Namespace } from "@kubernetes/client-node";
 import { ExecAction } from "./exec_action";
 
 export class ExecShellAction extends ExecAction {
@@ -5,7 +7,8 @@ export class ExecShellAction extends ExecAction {
         return "Exec Shell";
     }
 
-    protected getCommand(): string[] {
-        return [ "sh" ];
+    protected executeCommand(screen: blessed.Widgets.Screen, namespace: V1Namespace, resource: string, container: string,
+        executeCallback: (command: string, args?: string[]) => void): void {
+        executeCallback("sh");
     }
 }

@@ -1,8 +1,19 @@
 import * as blessed from "blessed";
+import fs from "fs";
 
 export class BlessedUtils {
     public static executeCommand(screen: blessed.Widgets.Screen, command: string, args: string[],
         callback: (err: any, succes: boolean) => void) {
+        BlessedUtils.executeCommandInternal(screen, command, args, false, callback);
+    }
+
+    public static executeCommandWait(screen: blessed.Widgets.Screen, command: string, args: string[],
+        callback: (err: any, succes: boolean) => void) {
+        BlessedUtils.executeCommandInternal(screen, command, args, true, callback);
+    }
+
+    private static executeCommandInternal(screen: blessed.Widgets.Screen, command: string, args: string[],
+        wait: boolean, callback: (err: any, succes: boolean) => void) {
         // NOTE: Run command in a terminal box inside blessed's screen. Left here just for reference.
 
         // const term = blessed.terminal({
@@ -55,6 +66,11 @@ export class BlessedUtils {
         screen.log(`executing command: ${command} ${args.join(" ")}`);
 
         screen.exec(command, args, {}, (err, success) => {
+            if (wait) {
+                process.stdout.write("Command finished. Press any key to continue.");
+                const arr = new Uint16Array(2);
+                fs.readSync(0, arr, 0, 1, null);
+            }
             screen.program.hideCursor();
             callback(err, success);
         });

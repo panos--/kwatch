@@ -3,14 +3,14 @@ import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { APIResource, K8sClient } from "../client";
 
-export class ExecAction implements Action {
-    public getLabel() {
-        return "Exec Bash";
-    }
+export abstract class ExecAction implements Action {
+    public abstract getLabel(): string;
 
     public appliesTo(apiResource: APIResource): boolean {
         return apiResource.resource.name == "pods";
     }
+
+    protected abstract getCommand(): string[];
 
     public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
         // NOTE: Run command in a terminal box inside blessed's screen. Left here just for reference.
@@ -61,15 +61,18 @@ export class ExecAction implements Action {
         screen.alloc();
         screen.program.normalBuffer();
         screen.program.flush();
-        screen.exec("kubectl", [
+
+        const args = [
             "-n",
             namespace.metadata.name,
             "exec",
             "-it",
             resource,
-            "--",
-            "bash"
-        ], {}, (err, success) => {
+            "--"
+        ];
+        args.push.apply(args, this.getCommand());
+
+        screen.exec("kubectl", args, {}, (err, success) => {
             if (err) {
                 console.log(err);
             }

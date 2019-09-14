@@ -1,11 +1,11 @@
 import { ExecAction } from "./exec_action";
 
-export class ExecLoginShellAction extends ExecAction {
+export class ExecBashAction extends ExecAction {
     public getLabel() {
-        return "Exec Login Shell";
+        return "Exec Bash";
     }
 
     protected getCommand(): string[] {
-        return [ "sh", "-il" ];
+        return [ "bash" ];
     }
 }

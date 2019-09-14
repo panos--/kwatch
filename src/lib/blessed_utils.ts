@@ -1,5 +1,6 @@
 import * as blessed from "blessed";
 import fs from "fs";
+import { singular } from "pluralize";
 
 export class BlessedUtils {
     public static executeCommand(screen: blessed.Widgets.Screen, command: string, args: string[],
@@ -65,6 +66,9 @@ export class BlessedUtils {
 
         screen.log(`executing command: ${command} ${args.join(" ")}`);
 
+        const sigHandler = () => {};
+        process.on("SIGINT", sigHandler); // don't get terminated on ctrl-c
+        screen.lockKeys = true;
         screen.exec(command, args, {}, (err, success) => {
             if (wait) {
                 process.stdout.write("Command finished. Press any key to continue.");
@@ -72,6 +76,8 @@ export class BlessedUtils {
                 fs.readSync(0, arr, 0, 1, null);
             }
             screen.program.hideCursor();
+            screen.lockKeys = false;
+            process.off("SIGINT", sigHandler);
             callback(err, success);
         });
     }

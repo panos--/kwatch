@@ -13,6 +13,8 @@ export class ExecAction implements Action {
     }
 
     public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
+        // NOTE: Run command in a terminal box inside blessed's screen. Left here just for reference.
+
         // const term = blessed.terminal({
         //     parent: screen,
         //     label: "Terminal",
@@ -49,13 +51,16 @@ export class ExecAction implements Action {
         // term.focus();
         // screen.render();
 
-        let width: number = typeof screen.width == "number" ? screen.width : parseInt(screen.width);
-        let height: number = typeof screen.height == "number" ? screen.height : parseInt(screen.height);
-        screen.clearRegion(0, width, 0, height);
-        screen.cursorReset();
-        // screen.render();
+        // NOTE: although screen.spawn() does various things to clean up the screen before launching
+        // the given command this doesn't work somehow and leave the screen in cluttered state.
+        // Therefore, before calling spawn() we run a sequence of commands taken from blessed's
+        // exit routine.
+        let height = typeof screen.height == "number" ? screen.height : parseInt(screen.height);
+        screen.program.csr(0, height - 1);
         screen.program.showCursor();
-        screen.program.restoreCursor();
+        screen.alloc();
+        screen.program.normalBuffer();
+        screen.program.flush();
         screen.exec("kubectl", [
             "-n",
             namespace.metadata.name,
@@ -68,6 +73,10 @@ export class ExecAction implements Action {
             if (err) {
                 console.log(err);
             }
+            if (!success) {
+                console.log("Command returned with non-zero exit code");
+            }
+            screen.program.hideCursor();
         });
     }
 }

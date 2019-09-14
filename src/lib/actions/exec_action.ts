@@ -2,8 +2,8 @@ import * as blessed from "blessed";
 import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { APIResource, K8sClient } from "../client";
-import { AppDefaults } from "../app_defaults";
 import { BlessedUtils } from "../blessed_utils";
+import { ContainerPicker } from "../widgets/container_picker";
 
 export abstract class ExecAction implements Action {
     public abstract getLabel(): string;
@@ -23,54 +23,11 @@ export abstract class ExecAction implements Action {
                 this.executeCommandInternal(screen, namespace, resource, containers[0]);
             }
             else {
-                const lengths = containers.map(value => { return value.length; });
-                let maxLength = Math.max.apply(null, lengths);
-                const label = "Choose Container";
-                const containerMenu = blessed.list({
-                    parent: screen,
-                    label: label,
-                    top: "center",
-                    left: "center",
-                    width: Math.min(Math.max(maxLength, label.length + 2) + 2, 50),
-                    height: 8,
-                    mouse: true,
-                    keys: true,
-                    border: "line",
-                    items: containers,
-                    shrink: true,
-                    style: {
-                        item: {
-                            hover: {
-                                bg: "blue",
-                                fg: "white",
-                            }
-                        },
-                        selected: {
-                            bg: "blue",
-                            fg: "white",
-                            bold: true
-                        }
-                    },
+                const containerPicker = new ContainerPicker(containers, screen);
+                containerPicker.onSelect(container => {
+                    this.executeCommandInternal(screen, namespace, resource, container);
                 });
-                containerMenu.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
-                containerMenu.on("blur", () => {
-                    containerMenu.hide();
-                    containerMenu.destroy();
-                });
-                containerMenu.on("cancel", () => {
-                    containerMenu.hide();
-                    containerMenu.destroy();
-                });
-                containerMenu.on("select", (item, index) => {
-                    containerMenu.hide();
-                    containerMenu.destroy();
-                    this.executeCommandInternal(screen, namespace, resource, containers[index]);
-                });
-                screen.saveFocus();
-                containerMenu.focus();
-                containerMenu.show();
-                containerMenu.select(0);
-                screen.render();
+                containerPicker.show();
             }
         }, reason => {
             // FIXME: Handle error
@@ -102,7 +59,7 @@ export abstract class ExecAction implements Action {
                 kubectlArgs.push.apply(kubectlArgs, args);
             }
 
-            const resultCallback = (err, success) => {
+            const resultCallback = (err: any, success: boolean) => {
                 if (err) {
                     console.log(err);
                 }

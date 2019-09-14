@@ -13,6 +13,8 @@ import { ExecLoginShellAction } from "../actions/exec_login_shell_action";
 import { ExecBashAction } from "../actions/exec_bash_action";
 
 export class ResourceActionMenu {
+    private static readonly LABEL = "Choose Action";
+
     private state: AppState;
     private client: K8sClient;
     private screen: blessed.Widgets.Screen;
@@ -27,15 +29,15 @@ export class ResourceActionMenu {
 
     private init() {
         this.contextMenu = blessed.list({
-            top: 15,
-            left: 55,
+            label: ResourceActionMenu.LABEL,
+            top: "center",
+            left: "center",
             width: 40,
             height: 15,
             mouse: true,
             keys: true,
             border: "line",
             hidden: true,
-            items: ["foo", "bar", "baz", "qux"],
             shrink: true,
             style: {
                 item: {
@@ -104,14 +106,18 @@ export class ResourceActionMenu {
     private populateContextMenu(namespace: V1Namespace, apiResource: APIResource, resource: string) {
         this.contextMenu.clearItems();
         this.activeContextMenuActions = [];
-        this.contextMenuActions
-            .filter((action) => { return action.appliesTo(apiResource); })
-            .forEach((action) => {
-                this.activeContextMenuActions.push(() => {
-                    action.execute(this.client, this.screen, namespace, apiResource, resource);
-                });
-                this.contextMenu.addItem(action.getLabel());
+        let actions = this.contextMenuActions.filter((action) => { return action.appliesTo(apiResource); });
+        actions.forEach((action) => {
+            this.activeContextMenuActions.push(() => {
+                action.execute(this.client, this.screen, namespace, apiResource, resource);
             });
+            this.contextMenu.addItem(action.getLabel());
+        });
+        const lengths = actions.map(action => { return action.getLabel().length; });
+        let maxLength = Math.max.apply(null, lengths);
+        const label = ResourceActionMenu.LABEL;
+        this.contextMenu.width = Math.min(Math.max(maxLength, label.length + 2) + 2, 50);
+        this.contextMenu.height = Math.min(actions.length + 2, 20);
     }
 
     private executeContextMenuAction(index: number) {
@@ -119,7 +125,7 @@ export class ResourceActionMenu {
     }
 
     public appendTo(box: blessed.Widgets.BoxElement) {
-        box.append(this.contextMenu);
+        box.screen.append(this.contextMenu);
         this.screen = this.contextMenu.screen;
     }
 

@@ -14,6 +14,7 @@ import { ExecBashAction } from "../actions/exec_bash_action";
 import { ExecCommandAction } from "../actions/exec_command_action";
 import { ViewLogAction } from "../actions/view_log_action";
 import { TailLogAction } from "../actions/tail_log_action";
+import { ShowSecretsAction } from "../actions/show_secrets_action";
 
 export class ResourceActionMenu {
     private static readonly LABEL = "Choose Action";
@@ -98,6 +99,7 @@ export class ResourceActionMenu {
         this.contextMenuActions = [
             new DescribeAction(),
             new ShowYamlAction(),
+            new ShowSecretsAction(),
             new ExecBashAction(),
             new ExecLoginBashAction(),
             new ExecShellAction(),

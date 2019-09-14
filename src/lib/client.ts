@@ -6,7 +6,7 @@ import * as pluralize from "pluralize";
 import async from "async";
 import _ from "lodash";
 
-import { V1APIGroup, V1APIResourceList, V1APIResource, CoreV1Api, V1Namespace, V1Pod } from "@kubernetes/client-node";
+import { V1APIGroup, V1APIResourceList, V1APIResource, CoreV1Api, V1Namespace, V1Pod, V1Secret } from "@kubernetes/client-node";
 
 let primitives = [
     "string",
@@ -413,5 +413,19 @@ export class K8sClient {
         }
 
         return pod;
+    }
+
+    public async getSecret(secretName: string, namespaceName: string) {
+        const client = this.kubeConfig.makeApiClient(CoreV1Api);
+
+        let secret: V1Secret;
+        try {
+            const res = await client.readNamespacedSecret(secretName, namespaceName);
+            secret = res.body;
+        } catch (e) {
+            throw e;
+        }
+
+        return secret;
     }
 }

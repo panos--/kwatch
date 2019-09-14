@@ -6,6 +6,10 @@ interface PromptOptions extends blessed.Widgets.PromptOptions {
     parent: blessed.Widgets.Node;
 }
 
+interface BoxOptions extends blessed.Widgets.BoxOptions {
+    parent: blessed.Widgets.Node;
+}
+
 export class WidgetFactory {
     public static prompt(options: PromptOptions): blessed.Widgets.PromptElement {
         const screen = options.parent.screen;
@@ -36,5 +40,42 @@ export class WidgetFactory {
         });
 
         return prompt;
+    }
+
+    public static textBox(options: BoxOptions): blessed.Widgets.BoxElement {
+        const screen = options.parent.screen;
+
+        const box = blessed.box(_.merge({
+            top: 3,
+            left: 5,
+            height: "100%-6",
+            width: "100%-10",
+            mouse: true,
+            keys: true,
+            border: "line",
+            scrollable: true,
+            alwaysScroll: true,
+            scrollbar:  {
+                ch: " ",
+                track: {
+                    bg: "cyan"
+                },
+                style: {
+                    inverse: true
+                }
+            },
+        }, options));
+        box.setIndex(100);
+        box.key("pageup", () => {
+            box.scroll(-(box.height / 2 | 0) || -1);
+        });
+        box.key("pagedown", () => {
+            box.scroll(box.height / 2 | 0 || 1 );
+        });
+        box.key("escape", () => {
+            box.destroy();
+            screen.render();
+        });
+        return box;
     }
 }

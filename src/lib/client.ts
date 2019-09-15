@@ -152,13 +152,16 @@ export class APIResource {
         return _.capitalize(this.resource.name);
     }
 
-    public getFullName() {
+    public getLongName() {
         let name = this.resource.name;
         if (this.group) {
             name += "." + this.group.name;
         }
-        name += "/" + this.groupVersion;
         return name;
+    }
+
+    public getFullName() {
+        return this.getLongName() + "/" + this.groupVersion;
     }
 
     public getSingularName() {

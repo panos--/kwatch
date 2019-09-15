@@ -97,7 +97,7 @@ class App {
             // reflect state in list
             self.apiList.clearItems();
             for (let resource of resources) {
-                self.apiList.addItem(resource.getFullName());
+                self.apiList.addItem(resource.getLongName());
             }
             self.apiList.select(index);
             doneCb();

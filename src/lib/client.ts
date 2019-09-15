@@ -211,20 +211,24 @@ class APIGroupResources {
 }
 
 export class K8sClient {
-    private kubeConfig: k8s.KubeConfig;
+    private _kubeConfig: k8s.KubeConfig;
     private coreApi: CoreV1Api;
 
     public constructor(kubeConfig?: k8s.KubeConfig) {
+        if (!kubeConfig) {
+            kubeConfig = new k8s.KubeConfig();
+            kubeConfig.loadFromDefault();
+        }
         this.kubeConfig = kubeConfig;
-        this.init();
     }
 
-    private init() {
-        if (!this.kubeConfig) {
-            this.kubeConfig = new k8s.KubeConfig();
-            this.kubeConfig.loadFromDefault();
-        }
-        this.coreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+    public get kubeConfig(): k8s.KubeConfig {
+        return this._kubeConfig;
+    }
+
+    public set kubeConfig(kubeConfig: k8s.KubeConfig) {
+        this._kubeConfig = kubeConfig;
+        this.coreApi = this._kubeConfig.makeApiClient(k8s.CoreV1Api);
     }
 
     private async request(endpoint: string) {

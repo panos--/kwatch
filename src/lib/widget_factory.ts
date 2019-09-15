@@ -10,6 +10,10 @@ interface BoxOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
 }
 
+interface ListOptions<T> extends blessed.Widgets.ListOptions<T> {
+    parent: blessed.Widgets.Node;
+}
+
 export class WidgetFactory {
     public static prompt(options: PromptOptions): blessed.Widgets.PromptElement {
         const screen = options.parent.screen;
@@ -77,5 +81,57 @@ export class WidgetFactory {
             screen.render();
         });
         return box;
+    }
+
+    public static list(label: string | null, values: string[],
+        options: ListOptions<blessed.Widgets.ListElementStyle>,
+        onSelect?: (item: string, index: number) => void) {
+        if (values.length == 0) {
+            throw "Invalid argument: values must not be empty";
+        }
+        const lengths = values.map(value => { return value.length; });
+        let maxLength = Math.max.apply(null, lengths);
+        const list = blessed.list(_.merge({
+            label: label,
+            top: "center",
+            left: "center",
+            width: Math.min(Math.max(maxLength, (label === null ? 0 : label.length) + 2, 10) + 2, 50),
+            height: Math.min(values.length + 2, 20),
+            mouse: true,
+            keys: true,
+            border: "line",
+            items: values,
+            shrink: true,
+            style: {
+                item: {
+                    hover: {
+                        bg: "blue",
+                        fg: "white",
+                    }
+                },
+                selected: {
+                    bg: "blue",
+                    fg: "white",
+                    bold: true
+                }
+            },
+        }, options));
+        list.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
+        list.on("blur", () => {
+            list.hide();
+            list.destroy();
+        });
+        list.on("cancel", () => {
+            list.hide();
+            list.destroy();
+        });
+        list.on("select", (item, index) => {
+            list.hide();
+            list.destroy();
+            if (onSelect) {
+                onSelect(values[index], index);
+            }
+        });
+        return list;
     }
 }

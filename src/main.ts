@@ -1,19 +1,24 @@
 import * as fs from "fs";
 import * as path from "path";
+import childProcess from "child_process";
 import * as k8s from "@kubernetes/client-node";
 import * as blessed from "blessed";
 import * as k8sClient from "./lib/client";
 import { AppState } from "./lib/app_state";
 import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
 import { AppDefaults } from "./lib/app_defaults";
+import { WidgetFactory } from "./lib/widget_factory";
+import { TopBarWidget } from "./lib/widgets/top_bar_widget";
 
 class App {
     private kubeConfig: k8s.KubeConfig;
     private client: k8sClient.K8sClient;
 
     private screen: blessed.Widgets.Screen;
+    private topBar: TopBarWidget;
     private namespaceList: blessed.Widgets.ListElement;
     private apiList: blessed.Widgets.ListElement;
+    private resourceListWidget: ResourceListWidget;
 
     private state: AppState;
     private stateFile: string;
@@ -146,8 +151,48 @@ class App {
             }
         });
 
+        this.topBar = new TopBarWidget(box);
+        this.topBar.addItem({
+            key: "c",
+            labelCallback: () => {
+                return `[C]ontext: ${this.kubeConfig.getCurrentContext()}`;
+            },
+            actionCallback: () => {
+                const contexts = this.kubeConfig.getContexts();
+                const currentContext = this.kubeConfig.getCurrentContext();
+                const currentIndex = contexts.findIndex(context => { return context.name == currentContext; });
+                const list = WidgetFactory.list(
+                    "Choose Context",
+                    contexts.map(context => { return context.name; }),
+                    {
+                        parent: box,
+                    },
+                    (context, index) => {
+                        this.kubeConfig.setCurrentContext(contexts[index].name);
+                        this.client.kubeConfig = this.kubeConfig;
+                        childProcess.execFile("kubectl", [
+                            "config", "use-context", contexts[index].name
+                        ], {
+                            encoding: null,
+                        }, (error) => {
+                            // cb(error, stdout.toLocaleString().split("\n"));
+                            if (error) {
+                                throw error;
+                            }
+                        });
+                        this.topBar.update();
+                        this.updateContents();
+                        this.resourceListWidget.refresh();
+                    });
+                if (currentIndex != -1) {
+                    list.select(currentIndex);
+                }
+                list.focus();
+            },
+        });
+
         var leftPane = blessed.box({
-            top: 0,
+            top: 1,
             left: 0,
             width: 30,
             height: "100%",
@@ -204,7 +249,7 @@ class App {
             top: "20%",
             left: 0,
             width: "100%",
-            height: "80%",
+            height: "80%-1",
             mouse: true,
             keys: true,
             border: "line",
@@ -248,10 +293,10 @@ class App {
         leftPane.append(this.apiList);
 
         var mainPane = blessed.box({
-            top: 0,
+            top: 1,
             left: 30,
             width: this.screen.cols - 30,
-            height: "100%",
+            height: "100%-1",
             keys: false,
             alwaysScroll:true,
             scrollable: true,
@@ -264,8 +309,8 @@ class App {
             }
         });
 
-        let resourceListWidget = new ResourceListWidget(this.state, this.client);
-        resourceListWidget.appendTo(mainPane);
+        this.resourceListWidget = new ResourceListWidget(this.state, this.client);
+        this.resourceListWidget.appendTo(mainPane);
 
         box.append(leftPane);
         box.append(mainPane);
@@ -299,15 +344,15 @@ class App {
         });
 
         this.screen.key(["]"], () => {
-            resourceListWidget.cycleRefreshSlower();
+            this.resourceListWidget.cycleRefreshSlower();
         });
 
         this.screen.key(["["], () => {
-            resourceListWidget.cycleRefreshFaster();
+            this.resourceListWidget.cycleRefreshFaster();
         });
 
         this.screen.key(["space"], () => {
-            resourceListWidget.pause();
+            this.resourceListWidget.pause();
         });
 
         this.screen.render();

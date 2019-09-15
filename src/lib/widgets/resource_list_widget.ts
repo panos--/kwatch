@@ -237,10 +237,7 @@ export class ResourceListWidget {
 
     public cycleRefreshFaster() {
         this.paused = false;
-        if (this.timeout !== null) {
-            clearTimeout(this.timeout);
-            this.timeout = null;
-        }
+        this.unschedule();
         this.interval--;
         if (this.interval < 0) {
             this.interval = this.intervals.length - 1;
@@ -250,10 +247,7 @@ export class ResourceListWidget {
 
     public cycleRefreshSlower() {
         this.paused = false;
-        if (this.timeout !== null) {
-            clearTimeout(this.timeout);
-            this.timeout = null;
-        }
+        this.unschedule();
         if (this.interval >= this.intervals.length - 1) {
             this.interval = 0;
         }
@@ -264,12 +258,16 @@ export class ResourceListWidget {
     }
 
     public pause() {
+        this.unschedule();
+        this.paused = !this.paused;
+        this.timeout = setTimeout(() => { this.update(); }, 100);
+    }
+
+    private unschedule() {
         if (this.timeout !== null) {
             clearTimeout(this.timeout);
             this.timeout = null;
         }
-        this.paused = !this.paused;
-        this.timeout = setTimeout(() => { this.update(); }, 100);
     }
 
     public freeze() {
@@ -280,7 +278,12 @@ export class ResourceListWidget {
         this.frozen = false;
     }
 
+    public refresh() {
+        this.unschedule();
+        this.run();
+    }
+
     private run() {
-        this.timeout = setTimeout(() => { this.update(); }, 500);
+        this.timeout = setTimeout(() => { this.update(); }, 50);
     }
 }

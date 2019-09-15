@@ -2533,7 +2533,7 @@ export namespace Widgets {
          * containing keys of keys and callback.
          */
         commands: Types.ListbarCommand[];
-        items: Types.ListbarCommand[];
+        items?: Types.ListbarCommand[];
 
         /**
          * Automatically bind list buttons to keys 0-9.

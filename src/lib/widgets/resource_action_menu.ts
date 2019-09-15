@@ -15,6 +15,7 @@ import { ExecCommandAction } from "../actions/exec_command_action";
 import { ViewLogAction } from "../actions/view_log_action";
 import { TailLogAction } from "../actions/tail_log_action";
 import { ShowSecretsAction } from "../actions/show_secrets_action";
+import { DumpSecretsAction } from "../actions/dump_secrets_action";
 
 export class ResourceActionMenu {
     private static readonly LABEL = "Choose Action";
@@ -100,6 +101,7 @@ export class ResourceActionMenu {
             new DescribeAction(),
             new ShowYamlAction(),
             new ShowSecretsAction(),
+            new DumpSecretsAction(),
             new ExecBashAction(),
             new ExecLoginBashAction(),
             new ExecShellAction(),

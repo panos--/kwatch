@@ -1,6 +1,5 @@
 import * as blessed from "blessed";
 import fs from "fs";
-import { singular } from "pluralize";
 
 export class BlessedUtils {
     public static executeCommand(screen: blessed.Widgets.Screen, command: string, args: string[],
@@ -74,11 +73,45 @@ export class BlessedUtils {
                 process.stdout.write("Command finished. Press any key to continue.");
                 const arr = new Uint16Array(2);
                 fs.readSync(0, arr, 0, 1, null);
+                process.stdout.write("\n");
             }
             screen.program.hideCursor();
             screen.lockKeys = false;
             process.off("SIGINT", sigHandler);
             callback(err, success);
         });
+    }
+
+    // TODO: This should drop out of blessed screen and run callback, returning to blessed screen when
+    // callback finishes. Does not yet work properly. There are obviously things done by Screen.exec()
+    // that have to be done here too.
+    public static async runOffScreen(screen: blessed.Widgets.Screen, wait: boolean, callback: () => void) {
+        let height = typeof screen.height == "number" ? screen.height : parseInt(screen.height);
+        screen.program.csr(0, height - 1);
+        screen.program.showCursor();
+        screen.alloc();
+        screen.program.normalBuffer();
+        screen.program.flush();
+
+        const sigHandler = () => {};
+        process.on("SIGINT", sigHandler); // don't get terminated on ctrl-c
+        screen.lockKeys = true;
+        screen.exec("true", [], {}, (err, success) => {
+            try {
+                callback();
+            }
+            catch (e) {
+                console.log(e);
+                screen.log(e);
+            }
+        });
+        if (wait) {
+            process.stdout.write("Command finished. Press any key to continue.");
+            const arr = new Uint16Array(2);
+            fs.readSync(0, arr, 0, 1, null);
+        }
+        screen.program.hideCursor();
+        screen.lockKeys = false;
+        process.off("SIGINT", sigHandler);
     }
 }

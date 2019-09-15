@@ -6,6 +6,10 @@ interface PromptOptions extends blessed.Widgets.PromptOptions {
     parent: blessed.Widgets.Node;
 }
 
+interface QuestionOptions extends blessed.Widgets.QuestionOptions {
+    parent: blessed.Widgets.Node;
+}
+
 interface BoxOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
 }
@@ -44,6 +48,37 @@ export class WidgetFactory {
         });
 
         return prompt;
+    }
+
+    public static question(options: QuestionOptions) {
+        const screen = options.parent.screen;
+
+        let question = blessed.question(_.merge({
+            top: "center",
+            left: "center",
+            height: 10,
+            width: 40,
+            mouse: true,
+            keys: true,
+            border: "line",
+        }, options));
+
+        question.data.okay.style.bg = 4;
+        question.data.okay.style.fg = 15;
+        question.data.cancel.style.bg = 4;
+        question.data.cancel.style.fg = 15;
+        question.data.cancel.padding.left = 1;
+
+        question.on("focus", () => {
+            question.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
+            screen.render();
+        });
+        question.on("blur", () => {
+            question.style.border.bg = -1;
+            screen.render();
+        });
+
+        return question;
     }
 
     public static textBox(options: BoxOptions): blessed.Widgets.BoxElement {

@@ -2,6 +2,7 @@ import * as blessed from "blessed";
 import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { APIResource, K8sClient } from "../client";
+import { WidgetFactory } from "../widget_factory";
 
 export class DeleteAction implements Action {
     public getLabel() {
@@ -13,19 +14,10 @@ export class DeleteAction implements Action {
     }
 
     public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
-        let question = blessed.question({
-            top: "center",
-            left: "center",
-            height: "30%",
-            width: "50%",
-            mouse: true,
-            keys: true,
-            border: "line",
-        });
-        screen.append(question);
+        const question = WidgetFactory.question({ parent: screen, width: 80 });
         question.ask(
             `Delete ${apiResource.getSingularName()} ${resource} `
-            +` in namespace ${namespace.metadata.name}?`,
+            + `in namespace ${namespace.metadata.name}?`,
             (err, yes) => {
                 if (!yes) {
                     return;
@@ -33,16 +25,14 @@ export class DeleteAction implements Action {
                 let loading = blessed.loading({
                     top: "center",
                     left: "center",
-                    height: "30%",
-                    width: "50%",
+                    height: 5,
+                    width: 13,
                     mouse: true,
                     keys: true,
                     border: "line",
                 });
                 screen.append(loading);
-                loading.load(
-                    `Deleting ${apiResource.getSingularName()} ${resource} `
-                    +` in namespace ${namespace.metadata.name}...`);
+                loading.load("Deleting...");
                 client.deleteResource(namespace, apiResource, resource, (error) => {
                     if (error) {
                         throw error;

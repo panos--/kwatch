@@ -199,12 +199,14 @@ class App {
             focusable: false,
         });
 
+        const screenHeight = typeof this.screen.height == "number" ? this.screen.height : parseInt(this.screen.height);
+        const nsListHeight = Math.round(screenHeight * .2) - 1;
         this.namespaceList = blessed.list({
             label: "Namespaces",
             top: 0,
             left: 0,
             width: "100%",
-            height: "20%",
+            height: nsListHeight,
             mouse: true,
             keys: true,
             border: "line",
@@ -241,15 +243,17 @@ class App {
         });
         this.namespaceList.on("select", (boxElement, index) => {
             this.state.namespace = self.state.namespaces[index];
+            this.resourceListWidget.refresh();
             this.screen.focusNext();
         });
 
+        const apiListHeight = screenHeight - nsListHeight - 1;
         this.apiList = blessed.list({
             label: "API Resources",
             top: "20%",
             left: 0,
             width: "100%",
-            height: "80%-1",
+            height: apiListHeight,
             mouse: true,
             keys: true,
             border: "line",
@@ -285,7 +289,8 @@ class App {
             this.screen.render();
         });
         this.apiList.on("select", (boxElement, index) => {
-            self.state.apiResource = self.state.apiResources[index];
+            this.state.apiResource = self.state.apiResources[index];
+            this.resourceListWidget.refresh();
             this.screen.focusNext();
         });
 

@@ -235,7 +235,7 @@ export class ResourceListWidget {
         reschedule.call(this);
     }
 
-    public cycleRefreshFaster() {
+    public cycleRefreshSlower() {
         this.paused = false;
         this.unschedule();
         this.interval--;
@@ -245,7 +245,7 @@ export class ResourceListWidget {
         this.timeout = setTimeout(() => { this.update(); }, 100);
     }
 
-    public cycleRefreshSlower() {
+    public cycleRefreshFaster() {
         this.paused = false;
         this.unschedule();
         if (this.interval >= this.intervals.length - 1) {

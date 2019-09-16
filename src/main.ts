@@ -250,7 +250,7 @@ class App {
         const apiListHeight = screenHeight - nsListHeight - 1;
         this.apiList = blessed.list({
             label: "API Resources",
-            top: "20%",
+            top: nsListHeight,
             left: 0,
             width: "100%",
             height: apiListHeight,

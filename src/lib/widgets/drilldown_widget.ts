@@ -1,4 +1,5 @@
 import * as blessed from "blessed";
+import _ from "lodash";
 import { AppDefaults } from "../app_defaults";
 
 interface DrilldownOptions extends blessed.Widgets.BoxOptions {
@@ -6,7 +7,6 @@ interface DrilldownOptions extends blessed.Widgets.BoxOptions {
 }
 
 export class DrilldownWidget {
-    private parent: blessed.Widgets.Node;
     private screen: blessed.Widgets.Screen;
     private box: blessed.Widgets.BoxElement;
     private input: blessed.Widgets.TextboxElement;
@@ -22,28 +22,27 @@ export class DrilldownWidget {
     private selectedItem: string;
 
     public constructor(values: string[], options: DrilldownOptions) {
-        this.parent = options.parent;
         this.screen = options.parent.screen;
         this.values = values;
         this.filteredValues = values;
-        this.init();
+        this.init(options);
         this.reset();
     }
 
-    public init() {
-        this.box = blessed.box({
-            parent: this.parent,
+    public init(options: DrilldownOptions) {
+        this.box = blessed.box(_.merge({
             top: "center",
             left: "center",
-            height: 30,
+            // height: 30,
+            height: 15,
             width: 50,
             border: "line",
             padding: {
                 top: 1,
             }
-        });
-        this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
-        this.box.setLabel("Choose Namespace");
+        }, options));
+        this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+
         this.input = blessed.textbox({
             parent: this.box,
             top: 0,
@@ -56,7 +55,14 @@ export class DrilldownWidget {
         this.input.style.bold = true;
         this.input.on("keypress", this.inputKeypress.bind(this));
         this.input.on("submit", () => {
-            this.select();
+            this.submit();
+        });
+        this.input.on("focus", () => {
+            this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+            this.focus();
+        });
+        this.input.on("blur", () => {
+            this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG;
         });
 
         this.list = blessed.list({
@@ -65,8 +71,17 @@ export class DrilldownWidget {
             left: 0,
             height: this.box.height - 5,
             width: "100%-2",
-            keys: true,
+            keyable: false,
             mouse: true,
+            scrollbar: {
+                ch: " ",
+                track: {
+                    bg: AppDefaults.COLOR_SCROLLBAR_BG
+                },
+                style: {
+                    inverse: true
+                }
+            },
             style: {
                 item: {
                     hover: {
@@ -86,17 +101,14 @@ export class DrilldownWidget {
             this.selectedIndex = index;
         });
         this.list.on("select", () => {
-            this.select();
-        });
-        this.list.key(["tab", "S-tab"], () => {
-            this.focus();
+            this.submit();
         });
         for (let value of this.values) {
             this.list.addItem(value);
         }
     }
 
-    private select() {
+    private submit() {
         let value = this.selectedItem;
         this.close();
         if (this.onSelectCallback) {
@@ -110,6 +122,10 @@ export class DrilldownWidget {
 
     public onClose(callback: () => void) {
         this.onCloseCallback = callback;
+    }
+
+    public onBlur(callback: () => void) {
+        this.input.on("blur", callback);
     }
 
     private reset() {
@@ -136,8 +152,9 @@ export class DrilldownWidget {
 
     private inputKeypress(ch: string, key: any) {
         if (key.name == "escape") {
-            this.close();
-            this.screen.render();
+            // this.close();
+            // this.screen.render();
+            this.screen.focusNext();
             return;
         }
 
@@ -192,5 +209,34 @@ export class DrilldownWidget {
         this.box.show();
         this.screen.render();
         this.input.readInput(() => {});
+    }
+
+    public setValues(values: string[]) {
+        this.values = values;
+        // TODO: DRY!
+        this.filteredValues = values.filter(value => { return value.includes(this.search); });
+        for (let value of this.filteredValues) {
+            this.list.addItem(value);
+        };
+        this.selectedIndex = 0;
+        this.selectedItem = this.filteredValues[this.selectedIndex];
+        this.list.select(this.selectedIndex);
+    }
+
+    public select(index: number) {
+        if (index < 0 || index >= this.values.length) {
+            throw "Invalid argument";
+        }
+        let filteredIndex = this.filteredValues.indexOf(this.values[index]);
+        if (filteredIndex == -1) {
+            filteredIndex = 0;
+        }
+        this.selectedIndex = filteredIndex;
+        this.selectedItem = this.values[index];
+    }
+
+    public key(name: string | string[], listener: (ch: any, key: blessed.Widgets.Events.IKeyEventArg) => void) {
+        this.input.key(name, listener);
+        // this.list.key(name, listener);
     }
 }

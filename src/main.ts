@@ -17,7 +17,8 @@ class App {
 
     private screen: blessed.Widgets.Screen;
     private topBar: TopBarWidget;
-    private apiList: blessed.Widgets.ListElement;
+    // private apiList: blessed.Widgets.ListElement;
+    private apiList: DrilldownWidget;
     private resourceListWidget: ResourceListWidget;
 
     private state: AppState;
@@ -72,7 +73,6 @@ class App {
     }
 
     private async updateApiList(doneCb: () => void) {
-        const self = this;
         this.client.getListableAPIResources((error, resources) => {
             if (error) {
                 console.log(error);
@@ -91,11 +91,12 @@ class App {
             }
             this.state.apiResource = resources[index];
             // reflect state in list
-            self.apiList.clearItems();
-            for (let resource of resources) {
-                self.apiList.addItem(resource.getLongName());
-            }
-            self.apiList.select(index);
+            // self.apiList.clearItems();
+            // for (let resource of resources) {
+            //     self.apiList.addItem(resource.getLongName());
+            // }
+            this.apiList.setValues(resources.map(r => { return r.getLongName(); }));
+            this.apiList.select(index);
             doneCb();
         }).catch(e => {
             console.log(e);
@@ -132,8 +133,9 @@ class App {
         this.screen.title = "KUI";
 
         var box = blessed.box({
-            top: "0",
-            left: "0",
+            parent: this.screen,
+            top: 0,
+            left: 0,
             width: "100%",
             height: "100%",
             tags: true,
@@ -190,6 +192,7 @@ class App {
                 this.screen.saveFocus();
                 const list = new DrilldownWidget(this.state.namespaces.map(n => { return n.metadata.name; }), {
                     parent: this.screen,
+                    label: "Choose Namespace",
                 });
                 list.onSelect((value, index) => {
                     this.state.namespace = self.state.namespaces[index];
@@ -201,11 +204,17 @@ class App {
                     this.screen.restoreFocus();
                     this.resourceListWidget.unfreeze();
                 });
+                list.onBlur(() => {
+                    list.destroy();
+                    this.screen.restoreFocus();
+                    this.resourceListWidget.unfreeze();
+                });
                 list.focus();
             }
         }]);
 
         var leftPane = blessed.box({
+            parent: box,
             top: 1,
             left: 0,
             width: 30,
@@ -213,56 +222,71 @@ class App {
             focusable: false,
         });
 
-        this.apiList = blessed.list({
+        // this.apiList = blessed.list({
+        //     label: "API Resources",
+        //     top: 0,
+        //     left: 0,
+        //     width: "100%",
+        //     height: "100%-1",
+        //     mouse: true,
+        //     keys: true,
+        //     border: "line",
+        //     scrollbar: {
+        //         ch: " ",
+        //         track: {
+        //             bg: AppDefaults.COLOR_SCROLLBAR_BG
+        //         },
+        //         style: {
+        //             inverse: true
+        //         }
+        //     },
+        //     style: {
+        //         item: {
+        //             hover: {
+        //                 bg: "blue",
+        //                 fg: "white",
+        //             }
+        //         },
+        //         selected: {
+        //             bg: "blue",
+        //             fg: "white",
+        //             bold: true
+        //         }
+        //     },
+        // });
+        // this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+        // this.apiList.on("focus", () => {
+        //     this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+        //     this.screen.render();
+        // });
+        // this.apiList.on("blur", () => {
+        //     this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+        //     this.screen.render();
+        // });
+        // this.apiList.on("select", (boxElement, index) => {
+        //     this.state.apiResource = self.state.apiResources[index];
+        //     this.resourceListWidget.refresh();
+        //     this.screen.focusNext();
+        // });
+        this.apiList = new DrilldownWidget([], {
             label: "API Resources",
+            parent: leftPane,
             top: 0,
             left: 0,
             width: "100%",
             height: "100%-1",
-            mouse: true,
-            keys: true,
-            border: "line",
-            scrollbar: {
-                ch: " ",
-                track: {
-                    bg: AppDefaults.COLOR_SCROLLBAR_BG
-                },
-                style: {
-                    inverse: true
-                }
-            },
-            style: {
-                item: {
-                    hover: {
-                        bg: "blue",
-                        fg: "white",
-                    }
-                },
-                selected: {
-                    bg: "blue",
-                    fg: "white",
-                    bold: true
-                }
-            },
         });
-        this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
-        this.apiList.on("focus", () => {
-            this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
-            this.screen.render();
-        });
-        this.apiList.on("blur", () => {
-            this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
-            this.screen.render();
-        });
-        this.apiList.on("select", (boxElement, index) => {
+        this.apiList.onSelect((value: string, index: number) => {
             this.state.apiResource = self.state.apiResources[index];
             this.resourceListWidget.refresh();
             this.screen.focusNext();
         });
+        this.apiList.key("tab", () => { this.resourceListWidget.focus(); });
 
-        leftPane.append(this.apiList);
+        // leftPane.append(this.apiList);
 
         var mainPane = blessed.box({
+            parent: box,
             top: 1,
             left: 30,
             width: this.screen.cols - 30,
@@ -281,10 +305,6 @@ class App {
 
         this.resourceListWidget = new ResourceListWidget(this.state, this.client);
         this.resourceListWidget.appendTo(mainPane);
-
-        box.append(leftPane);
-        box.append(mainPane);
-        this.screen.append(box);
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.screen.key(["C-r"], (ch, key) => {

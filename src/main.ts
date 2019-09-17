@@ -9,6 +9,7 @@ import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
 import { AppDefaults } from "./lib/app_defaults";
 import { WidgetFactory } from "./lib/widget_factory";
 import { TopBarWidget } from "./lib/widgets/top_bar_widget";
+import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
 
 class App {
     private kubeConfig: k8s.KubeConfig;
@@ -16,7 +17,6 @@ class App {
 
     private screen: blessed.Widgets.Screen;
     private topBar: TopBarWidget;
-    private namespaceList: blessed.Widgets.ListElement;
     private apiList: blessed.Widgets.ListElement;
     private resourceListWidget: ResourceListWidget;
 
@@ -66,11 +66,7 @@ class App {
                 index = 0;
             }
             this.state.namespace = namespaces[index];
-            this.namespaceList.clearItems();
-            for (let namespace of namespaces) {
-                this.namespaceList.addItem(namespace.metadata.name);
-            }
-            this.namespaceList.select(index);
+            this.topBar.update();
             doneCb();
         });
     }
@@ -152,7 +148,7 @@ class App {
         });
 
         this.topBar = new TopBarWidget(box);
-        this.topBar.addItem({
+        this.topBar.addItems([{
             key: "c",
             labelCallback: () => {
                 return `[C]ontext: ${this.kubeConfig.getCurrentContext()}`;
@@ -189,7 +185,28 @@ class App {
                 }
                 list.focus();
             },
-        });
+        },{
+            key: "n",
+            labelCallback: () => {
+                return `[N]amespace: ${this.state.namespace ? this.state.namespace.metadata.name : "n/a"}`;
+            },
+            actionCallback: () => {
+                this.resourceListWidget.freeze();
+                this.screen.saveFocus();
+                const list = new DrilldownWidget(this.screen, this.state.namespaces.map(n => { return n.metadata.name; }));
+                list.onSelect((value, index) => {
+                    this.state.namespace = self.state.namespaces[index];
+                    this.topBar.update();
+                    this.resourceListWidget.refresh();
+                });
+                list.onClose(() => {
+                    list.destroy();
+                    this.screen.restoreFocus();
+                    this.resourceListWidget.unfreeze();
+                });
+                list.focus();
+            }
+        }]);
 
         var leftPane = blessed.box({
             top: 1,
@@ -199,61 +216,12 @@ class App {
             focusable: false,
         });
 
-        const screenHeight = typeof this.screen.height == "number" ? this.screen.height : parseInt(this.screen.height);
-        const nsListHeight = Math.round(screenHeight * .2) - 1;
-        this.namespaceList = blessed.list({
-            label: "Namespaces",
+        this.apiList = blessed.list({
+            label: "API Resources",
             top: 0,
             left: 0,
             width: "100%",
-            height: nsListHeight,
-            mouse: true,
-            keys: true,
-            border: "line",
-            scrollbar: {
-                ch: " ",
-                track: {
-                    bg: "cyan"
-                },
-                style: {
-                    inverse: true
-                }
-            },
-            style: {
-                item: {
-                    hover: {
-                        bg: "blue",
-                        fg: "white",
-                    }
-                },
-                selected: {
-                    bg: "blue",
-                    fg: "white",
-                    bold: true
-                },
-            },
-        });
-        this.namespaceList.on("focus", () => {
-            this.namespaceList.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
-            this.screen.render();
-        });
-        this.namespaceList.on("blur", () => {
-            this.namespaceList.style.border.bg = -1;
-            this.screen.render();
-        });
-        this.namespaceList.on("select", (boxElement, index) => {
-            this.state.namespace = self.state.namespaces[index];
-            this.resourceListWidget.refresh();
-            this.screen.focusNext();
-        });
-
-        const apiListHeight = screenHeight - nsListHeight - 1;
-        this.apiList = blessed.list({
-            label: "API Resources",
-            top: nsListHeight,
-            left: 0,
-            width: "100%",
-            height: apiListHeight,
+            height: "100%-1",
             mouse: true,
             keys: true,
             border: "line",
@@ -294,7 +262,6 @@ class App {
             this.screen.focusNext();
         });
 
-        leftPane.append(this.namespaceList);
         leftPane.append(this.apiList);
 
         var mainPane = blessed.box({
@@ -361,7 +328,7 @@ class App {
         });
 
         this.screen.render();
-        this.namespaceList.focus();
+        this.resourceListWidget.focus();
         this.updateContents();
     }
 

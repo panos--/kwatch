@@ -283,6 +283,10 @@ export class ResourceListWidget {
         this.run();
     }
 
+    public focus() {
+        this.resourceList.focus();
+    }
+
     private run() {
         this.timeout = setTimeout(() => { this.update(); }, 50);
     }

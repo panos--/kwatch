@@ -58,7 +58,7 @@ export class ResourceActionMenu {
                 }
             },
         });
-        this.contextMenu.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
+        this.contextMenu.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
         this.contextMenu.on("blur", () => {
             this.close();
         });

@@ -43,7 +43,7 @@ export class ContainerPicker {
                 }
             },
         });
-        this.containerMenu.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
+        this.containerMenu.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
         this.containerMenu.on("blur", () => {
             this.containerMenu.hide();
             this.containerMenu.destroy();

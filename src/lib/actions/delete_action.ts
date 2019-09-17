@@ -3,6 +3,7 @@ import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { APIResource, K8sClient } from "../client";
 import { WidgetFactory } from "../widget_factory";
+import { AppDefaults } from "../app_defaults";
 
 export class DeleteAction implements Action {
     public getLabel() {
@@ -31,6 +32,7 @@ export class DeleteAction implements Action {
                     keys: true,
                     border: "line",
                 });
+                loading.style.border.bg = AppDefaults.COLOR_BORDER_BG;
                 screen.append(loading);
                 loading.load("Deleting...");
                 client.deleteResource(namespace, apiResource, resource, (error) => {

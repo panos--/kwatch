@@ -3,6 +3,7 @@ import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { APIResource, K8sClient } from "../client";
 import { WidgetFactory } from "../widget_factory";
+import { AppDefaults } from "../app_defaults";
 
 export class DescribeAction implements Action {
     public getLabel() {
@@ -18,6 +19,7 @@ export class DescribeAction implements Action {
             const box = WidgetFactory.textBox({
                 parent: screen,
             });
+            box.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
             box.setLabel(
                 (apiResource.resource.namespaced ? namespace.metadata.name + " / " : "")
                 + apiResource.getCapitalizedSingularName() + " " + resource);

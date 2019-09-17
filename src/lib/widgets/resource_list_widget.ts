@@ -47,7 +47,7 @@ export class ResourceListWidget {
             scrollbar: {
                 ch: " ",
                 track: {
-                    bg: "cyan"
+                    bg: AppDefaults.COLOR_SCROLLBAR_BG
                 },
                 style: {
                     inverse: true
@@ -67,12 +67,13 @@ export class ResourceListWidget {
                 }
             },
         });
+        this.resourceList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
         this.resourceList.on("focus", () => {
-            this.resourceList.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
+            this.resourceList.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
             this.render();
         });
         this.resourceList.on("blur", () => {
-            this.resourceList.style.border.bg = -1;
+            this.resourceList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
             this.render();
         });
         this.resourceList.key("pageup", () => {

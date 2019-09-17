@@ -1,4 +1,5 @@
 import * as blessed from "blessed";
+import { AppDefaults } from "./lib/app_defaults";
 
 const screen = blessed.screen({
     smartCSR: true,
@@ -23,7 +24,7 @@ const colorBox = blessed.box({
     scrollbar:  {
         ch: " ",
         track: {
-            bg: "cyan"
+            bg: AppDefaults.COLOR_SCROLLBAR_BG
         },
         style: {
             inverse: true

@@ -1,6 +1,12 @@
 import * as blessed from "blessed";
+import { AppDefaults } from "../app_defaults";
+
+interface DrilldownOptions extends blessed.Widgets.BoxOptions {
+    parent: blessed.Widgets.Node;
+}
 
 export class DrilldownWidget {
+    private parent: blessed.Widgets.Node;
     private screen: blessed.Widgets.Screen;
     private box: blessed.Widgets.BoxElement;
     private input: blessed.Widgets.TextboxElement;
@@ -15,8 +21,9 @@ export class DrilldownWidget {
     private selectedIndex: number;
     private selectedItem: string;
 
-    public constructor(screen: blessed.Widgets.Screen, values: string[]) {
-        this.screen = screen;
+    public constructor(values: string[], options: DrilldownOptions) {
+        this.parent = options.parent;
+        this.screen = options.parent.screen;
         this.values = values;
         this.filteredValues = values;
         this.init();
@@ -25,13 +32,17 @@ export class DrilldownWidget {
 
     public init() {
         this.box = blessed.box({
-            parent: this.screen,
+            parent: this.parent,
             top: "center",
             left: "center",
             height: 30,
             width: 50,
             border: "line",
+            padding: {
+                top: 1,
+            }
         });
+        this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
         this.box.setLabel("Choose Namespace");
         this.input = blessed.textbox({
             parent: this.box,
@@ -40,8 +51,9 @@ export class DrilldownWidget {
             height: 1,
             width: "100%-2",
         });
-        this.input.style.bg = 12;
-        this.input.style.fg = 7;
+        this.input.style.bg = AppDefaults.COLOR_INPUT_BG;
+        this.input.style.fg = AppDefaults.COLOR_INPUT_FG;
+        this.input.style.bold = true;
         this.input.on("keypress", this.inputKeypress.bind(this));
         this.input.on("submit", () => {
             this.select();
@@ -51,7 +63,7 @@ export class DrilldownWidget {
             parent: this.box,
             top: 2,
             left: 0,
-            height: this.box.height - 4,
+            height: this.box.height - 5,
             width: "100%-2",
             keys: true,
             mouse: true,

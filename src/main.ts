@@ -138,14 +138,9 @@ class App {
             height: "100%",
             tags: true,
             focusable: false,
-            style: {
-                fg: "white",
-                bg: "magenta",
-                hover: {
-                    bg: "green"
-                }
-            }
         });
+        box.style.bg = AppDefaults.COLOR_BG;
+        box.style.fg = AppDefaults.COLOR_FG;
 
         this.topBar = new TopBarWidget(box);
         this.topBar.addItems([{
@@ -193,7 +188,9 @@ class App {
             actionCallback: () => {
                 this.resourceListWidget.freeze();
                 this.screen.saveFocus();
-                const list = new DrilldownWidget(this.screen, this.state.namespaces.map(n => { return n.metadata.name; }));
+                const list = new DrilldownWidget(this.state.namespaces.map(n => { return n.metadata.name; }), {
+                    parent: this.screen,
+                });
                 list.onSelect((value, index) => {
                     this.state.namespace = self.state.namespaces[index];
                     this.topBar.update();
@@ -228,7 +225,7 @@ class App {
             scrollbar: {
                 ch: " ",
                 track: {
-                    bg: "cyan"
+                    bg: AppDefaults.COLOR_SCROLLBAR_BG
                 },
                 style: {
                     inverse: true
@@ -248,12 +245,13 @@ class App {
                 }
             },
         });
+        this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
         this.apiList.on("focus", () => {
-            this.apiList.style.border.bg = AppDefaults.COLOR_BG_FOCUS;
+            this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
             this.screen.render();
         });
         this.apiList.on("blur", () => {
-            this.apiList.style.border.bg = -1;
+            this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
             this.screen.render();
         });
         this.apiList.on("select", (boxElement, index) => {

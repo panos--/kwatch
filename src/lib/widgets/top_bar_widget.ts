@@ -1,4 +1,5 @@
 import * as blessed from "blessed";
+import { AppDefaults } from "../app_defaults";
 
 export interface TopBarItemOptions {
     key: string;
@@ -40,6 +41,8 @@ export class TopBarWidget {
                 }
             }
         });
+        this.topBar.style.bg = AppDefaults.COLOR_BG;
+        this.topBar.style.fg = AppDefaults.COLOR_FG;
     }
 
     public update() {

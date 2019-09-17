@@ -35,7 +35,7 @@ const term = blessed.terminal({
     scrollbar: {
         ch: " ",
         track: {
-            bg: "cyan"
+            bg: AppDefaults.COLOR_SCROLLBAR_BG
         },
         style: {
             inverse: true

@@ -393,13 +393,18 @@ export class K8sClient {
         namespace: V1Namespace | null,
         apiResource: APIResource,
         resource: string,
+        force: boolean,
         cb: (error: Error) => void) {
 
         let args = [];
         if (namespace !== null) {
             args.push("-n", namespace.metadata.name);
         }
-        args.push("delete", apiResource.resource.name, resource);
+        args.push("delete");
+        if (force) {
+            args.push("--force", "--grace-period=0");
+        }
+        args.push(apiResource.resource.name, resource);
 
         childProcess.execFile("kubectl", args, {
             encoding: null,

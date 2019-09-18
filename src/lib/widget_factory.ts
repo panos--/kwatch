@@ -181,6 +181,12 @@ export class WidgetFactory {
                 onSelect(values[index], index);
             }
         });
+        list.key("home", () => {
+            list.select(0);
+        });
+        list.key("end", () => {
+            list.select(values.length - 1);
+        });
         return list;
     }
 }

@@ -16,9 +16,11 @@ export class DeleteAction implements Action {
 
     public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
         const question = WidgetFactory.question({ parent: screen, width: 80 });
+        question.data.okay.top = 5;
+        question.data.cancel.top = 5;
         question.ask(
-            `Delete ${apiResource.getSingularName()} ${resource} `
-            + `in namespace ${namespace.metadata.name}?`,
+            `Delete ${apiResource.getSingularName()} ${resource}\n`
+            + ` in namespace ${namespace.metadata.name}?`,
             (err, yes) => {
                 if (!yes) {
                     return;

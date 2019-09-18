@@ -132,7 +132,9 @@ export class ResourceListWidget {
                 resource = resParts[1];
             }
 
-            this.showActionMenu(this.currentNamespace, apiResource, resource);
+            if (this.currentNamespace && apiResource) {
+                this.showActionMenu(this.currentNamespace, apiResource, resource);
+            }
         });
 
         this.actionMenu = new ResourceActionMenu(this.state, this.client, this.resourceList);

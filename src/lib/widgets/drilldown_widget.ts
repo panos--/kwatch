@@ -193,7 +193,7 @@ export class DrilldownWidget {
                 }
             }
         } else if (ch) {
-            if (!/^[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]$/.test(ch)) {
+            if (!/^[\t\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]$/.test(ch)) {
                 this.search += ch;
             }
         }

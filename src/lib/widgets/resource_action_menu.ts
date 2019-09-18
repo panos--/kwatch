@@ -23,18 +23,22 @@ export class ResourceActionMenu {
 
     private state: AppState;
     private client: K8sClient;
+    private parent: blessed.Widgets.Node;
     private screen: blessed.Widgets.Screen;
     private contextMenu: blessed.Widgets.ListElement;
     private onAfterCloseCallback: () => void = null;
 
-    public constructor(state: AppState, client: K8sClient) {
+    public constructor(state: AppState, client: K8sClient, parent: blessed.Widgets.Node) {
         this.state = state;
         this.client = client;
+        this.parent = parent;
+        this.screen = parent.screen;
         this.init();
     }
 
     private init() {
         this.contextMenu = blessed.list({
+            parent: this.parent,
             label: ResourceActionMenu.LABEL,
             top: "center",
             left: "center",
@@ -134,11 +138,6 @@ export class ResourceActionMenu {
 
     private executeContextMenuAction(index: number) {
         this.activeContextMenuActions[index]();
-    }
-
-    public appendTo(box: blessed.Widgets.BoxElement) {
-        box.screen.append(this.contextMenu);
-        this.screen = this.contextMenu.screen;
     }
 
     private render() {

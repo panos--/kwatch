@@ -135,8 +135,7 @@ export class ResourceListWidget {
             this.showActionMenu(this.currentNamespace, apiResource, resource);
         });
 
-        this.actionMenu = new ResourceActionMenu(this.state, this.client);
-        this.actionMenu.appendTo(this.resourceList);
+        this.actionMenu = new ResourceActionMenu(this.state, this.client, this.resourceList);
         this.actionMenu.onAfterClose(() => { this.unfreeze(); });
 
         this.run();

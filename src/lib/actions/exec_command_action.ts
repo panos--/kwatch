@@ -13,6 +13,7 @@ export class ExecCommandAction extends ExecAction {
         const prompt = WidgetFactory.prompt({
             parent: screen,
             label: "Enter command",
+            width: 50,
         });
         prompt.focus();
         prompt.input("Command:", "", (err, value) => {

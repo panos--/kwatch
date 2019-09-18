@@ -72,7 +72,7 @@ export class DrilldownWidget {
             parent: this.box,
             top: 2,
             left: 0,
-            height: this.box.height - 5,
+            height: "100%-5",
             width: "100%-2",
             keyable: false,
             mouse: true,

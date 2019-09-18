@@ -298,7 +298,7 @@ class App {
             parent: box,
             top: 1,
             left: 30,
-            width: this.screen.cols - 30,
+            width: "100%-30",
             height: "100%-1",
             keys: false,
             alwaysScroll:true,

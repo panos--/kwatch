@@ -277,11 +277,20 @@ class App {
             height: "100%-1",
         });
         this.apiList.onSelect((value: string, index: number) => {
-            this.state.apiResource = self.state.apiResources[index];
+            if (index == -1) {
+                this.state.apiResource = null;
+            }
+            else {
+                this.state.apiResource = this.state.apiResources[index];
+            }
             this.resourceListWidget.refresh();
             this.screen.focusNext();
         });
-        this.apiList.key("tab", () => { this.resourceListWidget.focus(); });
+        this.apiList.key("tab", () => {
+            // NOTE: crude hack
+            this.apiList.searchValue = this.apiList.searchValue.replace("\t", "");
+            this.resourceListWidget.focus();
+        });
 
         // leftPane.append(this.apiList);
 

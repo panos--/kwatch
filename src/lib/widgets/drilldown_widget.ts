@@ -54,6 +54,9 @@ export class DrilldownWidget {
         this.input.style.fg = AppDefaults.COLOR_INPUT_FG;
         this.input.style.bold = true;
         this.input.on("keypress", this.inputKeypress.bind(this));
+        this.input.key(["C-backspace", "M-backspace"], () => {
+            this.searchValue = "";
+        });
         this.input.on("submit", () => {
             this.submit();
         });
@@ -110,7 +113,7 @@ export class DrilldownWidget {
 
     private submit() {
         let value = this.selectedItem;
-        this.close();
+        // this.close();
         if (this.onSelectCallback) {
             this.onSelectCallback.call(null, value, this.values.indexOf(value));
         }
@@ -136,13 +139,13 @@ export class DrilldownWidget {
         this.input.setValue("");
     }
 
-    private close() {
-        this.box.hide();
-        this.reset();
-        if (this.onCloseCallback) {
-            this.onCloseCallback.call(null);
-        }
-    }
+    // private close() {
+    //     this.box.hide();
+    //     this.reset();
+    //     if (this.onCloseCallback) {
+    //         this.onCloseCallback.call(null);
+    //     }
+    // }
 
     public destroy() {
         this.input.destroy();
@@ -155,6 +158,7 @@ export class DrilldownWidget {
             // this.close();
             // this.screen.render();
             this.screen.focusNext();
+            this.screen.render();
             return;
         }
 
@@ -194,15 +198,7 @@ export class DrilldownWidget {
             }
         }
 
-        let prevSelectedItem = this.selectedItem;
-        this.list.clearItems();
-        this.filteredValues = this.values.filter(value => { return value.includes(this.search); });
-        for (let value of this.filteredValues) {
-            this.list.addItem(value);
-        };
-        this.selectedIndex = Math.max(0, this.filteredValues.indexOf(prevSelectedItem));
-        this.selectedItem = this.filteredValues[this.selectedIndex];
-        this.list.select(this.selectedIndex);
+        this.update();
     }
 
     public focus() {
@@ -213,12 +209,27 @@ export class DrilldownWidget {
 
     public setValues(values: string[]) {
         this.values = values;
-        // TODO: DRY!
-        this.filteredValues = values.filter(value => { return value.includes(this.search); });
+        this.update();
+    }
+
+    public get searchValue() {
+        return this.search;
+    }
+
+    public set searchValue(searchValue: string) {
+        this.search = searchValue;
+        this.input.setValue(this.search);
+        this.update();
+    }
+
+    private update() {
+        let prevSelectedItem = this.selectedItem;
+        this.list.clearItems();
+        this.filteredValues = this.values.filter(value => { return value.includes(this.search); });
         for (let value of this.filteredValues) {
             this.list.addItem(value);
         };
-        this.selectedIndex = 0;
+        this.selectedIndex = Math.max(0, this.filteredValues.indexOf(prevSelectedItem));
         this.selectedItem = this.filteredValues[this.selectedIndex];
         this.list.select(this.selectedIndex);
     }
@@ -233,6 +244,9 @@ export class DrilldownWidget {
         }
         this.selectedIndex = filteredIndex;
         this.selectedItem = this.values[index];
+
+        this.list.select(this.selectedIndex);
+        this.screen.render();
     }
 
     public key(name: string | string[], listener: (ch: any, key: blessed.Widgets.Events.IKeyEventArg) => void) {

@@ -17,7 +17,6 @@ class App {
 
     private screen: blessed.Widgets.Screen;
     private topBar: TopBarWidget;
-    // private apiList: blessed.Widgets.ListElement;
     private apiList: DrilldownWidget;
     private resourceListWidget: ResourceListWidget;
 
@@ -90,11 +89,6 @@ class App {
                 index = 0;
             }
             this.state.apiResource = resources[index];
-            // reflect state in list
-            // self.apiList.clearItems();
-            // for (let resource of resources) {
-            //     self.apiList.addItem(resource.getLongName());
-            // }
             this.apiList.setValues(resources.map(r => { return r.getLongName(); }));
             this.apiList.select(index);
             doneCb();
@@ -222,52 +216,6 @@ class App {
             focusable: false,
         });
 
-        // this.apiList = blessed.list({
-        //     label: "API Resources",
-        //     top: 0,
-        //     left: 0,
-        //     width: "100%",
-        //     height: "100%-1",
-        //     mouse: true,
-        //     keys: true,
-        //     border: "line",
-        //     scrollbar: {
-        //         ch: " ",
-        //         track: {
-        //             bg: AppDefaults.COLOR_SCROLLBAR_BG
-        //         },
-        //         style: {
-        //             inverse: true
-        //         }
-        //     },
-        //     style: {
-        //         item: {
-        //             hover: {
-        //                 bg: "blue",
-        //                 fg: "white",
-        //             }
-        //         },
-        //         selected: {
-        //             bg: "blue",
-        //             fg: "white",
-        //             bold: true
-        //         }
-        //     },
-        // });
-        // this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
-        // this.apiList.on("focus", () => {
-        //     this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
-        //     this.screen.render();
-        // });
-        // this.apiList.on("blur", () => {
-        //     this.apiList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
-        //     this.screen.render();
-        // });
-        // this.apiList.on("select", (boxElement, index) => {
-        //     this.state.apiResource = self.state.apiResources[index];
-        //     this.resourceListWidget.refresh();
-        //     this.screen.focusNext();
-        // });
         this.apiList = new DrilldownWidget([], {
             label: "API Resources",
             parent: leftPane,
@@ -291,8 +239,6 @@ class App {
             this.apiList.searchValue = this.apiList.searchValue.replace("\t", "");
             this.resourceListWidget.focus();
         });
-
-        // leftPane.append(this.apiList);
 
         var mainPane = blessed.box({
             parent: box,
@@ -323,7 +269,6 @@ class App {
         this.screen.key(["C-l"], () => {
             // FIXME: dirty redraw hack
             box.hide();
-            // self.screen.clearRegion(0, self.screen.cols, 0, self.screen.rows);
             self.screen.render();
             box.show();
             self.screen.render();

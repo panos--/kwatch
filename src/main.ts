@@ -330,7 +330,7 @@ class App {
         });
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        this.screen.key(["q", "C-c"], (ch, key) => {
+        this.screen.key(["q", "C-c", "C-q"], (ch, key) => {
             this.saveAppState();
             return process.exit(0);
         });

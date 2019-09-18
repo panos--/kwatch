@@ -299,9 +299,59 @@ class App {
             this.resourceListWidget.pause();
         });
 
+        this.screen.key(["?", "h", "f1"], () => {
+            this.help();
+        });
+
         this.screen.render();
         this.resourceListWidget.focus();
         this.updateContents();
+    }
+
+    private help() {
+        this.resourceListWidget.freeze();
+        const helpBox = WidgetFactory.textBox({
+            parent: this.screen,
+            label: "Keyboard Shortcuts",
+            top: "center",
+            left: "center",
+            width: 72,
+            height: 24,
+        });
+        this.screen.grabKeys = true;
+        helpBox.key("escape", () => {
+            helpBox.destroy();
+            this.screen.grabKeys = false;
+            this.resourceListWidget.unfreeze();
+        });
+
+        let helpText = `
+            Global shortcuts
+
+                TAB, Shift TAB .... Cycle focus between left pane
+                                    and resource list
+                [, ] .............. Cycle refresh rate of resource
+                                    list faster, slower
+                SPACE ............. Pause resource list refresh
+                c ................. Choose kubernetes context
+                n ................. Choose namespace
+                CTRL-r ............ Refresh API resource list and
+                                    namespace list
+                CTRL-l ............ Redraw screen
+                ?, h, F1 .......... Show this help screen
+                q, CTRL-c, CTRL-q . Quit, exit program
+
+            Resource list
+
+                ENTER ............. Show action menu for selected
+                                    resource
+
+            API resource list
+
+                ESCAPE ............ Switch focus to resource list
+        `.replace(/\n         /g, "\n").replace("\n", "");
+        helpBox.insertBottom(helpText);
+        helpBox.focus();
     }
 
     public static run() {

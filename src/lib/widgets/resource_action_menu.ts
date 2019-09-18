@@ -70,6 +70,34 @@ export class ResourceActionMenu {
         this.contextMenu.on("cancel", () => {
             this.close();
         });
+        let keyPressLocked = false;
+        this.contextMenu.on("keypress", (ch, key) => {
+            if (!/^\d$/.test(ch)) {
+                return;
+            }
+
+            if (keyPressLocked) {
+                return;
+            }
+            keyPressLocked = true;
+
+            let num = parseInt(ch);
+            if (num == 0) {
+                num = 10;
+            }
+            num--;
+            if (num < this.activeContextMenuActions.length) {
+                this.contextMenu.select(num);
+                this.screen.render();
+                setTimeout(() => {
+                    this.close();
+                    this.executeContextMenuAction(num);
+                    keyPressLocked = false;
+                }, 100);
+            }
+
+            keyPressLocked = false;
+        });
         this.contextMenu.on("select", (item, index) => {
             this.close();
             this.executeContextMenuAction(index);
@@ -123,16 +151,17 @@ export class ResourceActionMenu {
         this.contextMenu.clearItems();
         this.activeContextMenuActions = [];
         let actions = this.contextMenuActions.filter((action) => { return action.appliesTo(apiResource); });
-        actions.forEach((action) => {
+        actions.forEach((action, index) => {
             this.activeContextMenuActions.push(() => {
                 action.execute(this.client, this.screen, namespace, apiResource, resource);
             });
-            this.contextMenu.addItem(action.getLabel());
+            let itemKey = index + 1;
+            this.contextMenu.addItem(`${itemKey < 10 ? itemKey : (itemKey > 10 ? " " : 0)} ${action.getLabel()}`);
         });
         const lengths = actions.map(action => { return action.getLabel().length; });
         let maxLength = Math.max.apply(null, lengths);
         const label = ResourceActionMenu.LABEL;
-        this.contextMenu.width = Math.min(Math.max(maxLength, label.length + 2) + 2, 50);
+        this.contextMenu.width = Math.min(Math.max(maxLength, label.length + 4) + 2, 50);
         this.contextMenu.height = Math.min(actions.length + 2, 20);
     }
 

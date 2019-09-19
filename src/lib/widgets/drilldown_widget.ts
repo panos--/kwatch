@@ -1,12 +1,13 @@
 import * as blessed from "blessed";
 import _ from "lodash";
-import { AppDefaults } from "../app_defaults";
+import { AppContext } from "../app_context";
 
 interface DrilldownOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
 }
 
 export class DrilldownWidget {
+    private ctx: AppContext;
     private screen: blessed.Widgets.Screen;
     private box: blessed.Widgets.BoxElement;
     private input: blessed.Widgets.TextboxElement;
@@ -21,7 +22,8 @@ export class DrilldownWidget {
     private selectedIndex: number;
     private selectedItem: string;
 
-    public constructor(values: string[], options: DrilldownOptions) {
+    public constructor(ctx: AppContext, values: string[], options: DrilldownOptions) {
+        this.ctx = ctx;
         this.screen = options.parent.screen;
         this.values = values;
         this.filteredValues = values;
@@ -41,7 +43,7 @@ export class DrilldownWidget {
                 top: 1,
             }
         }, options));
-        this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+        this.box.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
 
         this.input = blessed.textbox({
             parent: this.box,
@@ -50,8 +52,8 @@ export class DrilldownWidget {
             height: 1,
             width: "100%-2",
         });
-        this.input.style.bg = AppDefaults.COLOR_INPUT_BG;
-        this.input.style.fg = AppDefaults.COLOR_INPUT_FG;
+        this.input.style.bg = this.ctx.colorScheme.COLOR_INPUT_BG;
+        this.input.style.fg = this.ctx.colorScheme.COLOR_INPUT_FG;
         this.input.style.bold = true;
         this.input.on("keypress", this.inputKeypress.bind(this));
         this.input.key(["C-backspace", "M-backspace"], () => {
@@ -61,11 +63,11 @@ export class DrilldownWidget {
             this.submit();
         });
         this.input.on("focus", () => {
-            this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+            this.box.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
             this.focus();
         });
         this.input.on("blur", () => {
-            this.box.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+            this.box.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
         });
 
         this.list = blessed.list({
@@ -79,7 +81,7 @@ export class DrilldownWidget {
             scrollbar: {
                 ch: " ",
                 track: {
-                    bg: AppDefaults.COLOR_SCROLLBAR_BG
+                    bg: this.ctx.colorScheme.COLOR_SCROLLBAR_BG
                 },
                 style: {
                     inverse: true

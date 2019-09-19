@@ -1,12 +1,10 @@
 import * as blessed from "blessed";
-import { K8sClient, APIResource } from "../client";
-import { AppState } from "../app_state";
+import { APIResource } from "../client";
 import { Action } from "../actions/action";
 import { DescribeAction } from "../actions/describe_action";
 import { V1Namespace } from "@kubernetes/client-node";
 import { ShowYamlAction } from "../actions/show_yaml_action";
 import { DeleteAction } from "../actions/delete_action";
-import { AppDefaults } from "../app_defaults";
 import { ExecLoginBashAction } from "../actions/exec_login_bash_action";
 import { ExecShellAction } from "../actions/exec_shell_action";
 import { ExecLoginShellAction } from "../actions/exec_login_shell_action";
@@ -17,22 +15,18 @@ import { TailLogAction } from "../actions/tail_log_action";
 import { ShowSecretsAction } from "../actions/show_secrets_action";
 import { DumpSecretsAction } from "../actions/dump_secrets_action";
 import { ForceDeleteAction } from "../actions/force_delete_action";
+import { AppContext } from "../app_context";
 
 export class ResourceActionMenu {
     private static readonly LABEL = "Choose Action";
 
-    private state: AppState;
-    private client: K8sClient;
+    private ctx: AppContext;
     private parent: blessed.Widgets.Node;
-    private screen: blessed.Widgets.Screen;
     private contextMenu: blessed.Widgets.ListElement;
     private onAfterCloseCallback: () => void = null;
 
-    public constructor(state: AppState, client: K8sClient, parent: blessed.Widgets.Node) {
-        this.state = state;
-        this.client = client;
+    public constructor(ctx: AppContext, parent: blessed.Widgets.Node) {
         this.parent = parent;
-        this.screen = parent.screen;
         this.init();
     }
 
@@ -63,7 +57,7 @@ export class ResourceActionMenu {
                 }
             },
         });
-        this.contextMenu.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+        this.contextMenu.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
         this.contextMenu.on("blur", () => {
             this.close();
         });
@@ -71,7 +65,7 @@ export class ResourceActionMenu {
             this.close();
         });
         let keyPressLocked = false;
-        this.contextMenu.on("keypress", (ch, key) => {
+        this.contextMenu.on("keypress", (ch) => {
             if (!/^\d$/.test(ch)) {
                 return;
             }
@@ -88,7 +82,7 @@ export class ResourceActionMenu {
             num--;
             if (num < this.activeContextMenuActions.length) {
                 this.contextMenu.select(num);
-                this.screen.render();
+                this.ctx.screen.render();
                 setTimeout(() => {
                     this.close();
                     this.executeContextMenuAction(num);
@@ -153,7 +147,7 @@ export class ResourceActionMenu {
         let actions = this.contextMenuActions.filter((action) => { return action.appliesTo(apiResource); });
         actions.forEach((action, index) => {
             this.activeContextMenuActions.push(() => {
-                action.execute(this.client, this.screen, namespace, apiResource, resource);
+                action.execute(this.ctx, namespace, apiResource, resource);
             });
             let itemKey = index + 1;
             this.contextMenu.addItem(`${itemKey < 10 ? itemKey : (itemKey > 10 ? " " : 0)} ${action.getLabel()}`);
@@ -170,8 +164,8 @@ export class ResourceActionMenu {
     }
 
     private render() {
-        if (this.screen !== null) {
-            this.screen.render();
+        if (this.ctx.screen !== null) {
+            this.ctx.screen.render();
         }
     }
 }

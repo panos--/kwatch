@@ -4,40 +4,29 @@ import childProcess from "child_process";
 import * as k8s from "@kubernetes/client-node";
 import * as blessed from "blessed";
 import * as k8sClient from "./lib/client";
-import { AppState } from "./lib/app_state";
 import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
-import { AppDefaults } from "./lib/app_defaults";
 import { WidgetFactory } from "./lib/widget_factory";
 import { TopBarWidget } from "./lib/widgets/top_bar_widget";
 import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
+import { AppContext } from "./lib/app_context";
+import { LightColorScheme } from "./lib/color_scheme";
 
 class App {
-    private kubeConfig: k8s.KubeConfig;
-    private client: k8sClient.K8sClient;
+    private ctx: AppContext;
 
-    private screen: blessed.Widgets.Screen;
     private topBar: TopBarWidget;
     private apiList: DrilldownWidget;
     private resourceListWidget: ResourceListWidget;
 
-    private state: AppState;
     private stateFile: string;
 
-    private constructor() {
-        this.kubeConfig = new k8s.KubeConfig();
-        this.kubeConfig.loadFromDefault();
-        this.client = new k8sClient.K8sClient(this.kubeConfig);
-        this.state = {
-            namespace: null,
-            namespaces: [],
-            apiResource: null,
-            apiResources: [],
-        };
+    private constructor(ctx: AppContext) {
+        this.ctx = ctx;
         this.stateFile = process.env.XDG_CONFIG_HOME || (process.env.HOME + "/.config") + "/kui/state.json";
     }
 
     private saveAppState() {
-        let data = JSON.stringify(this.state, null, 2);
+        let data = JSON.stringify(this.ctx.state, null, 2);
         let dir = path.dirname(this.stateFile);
         fs.mkdirSync(dir, {recursive: true, mode: 0o750});
         fs.writeFileSync(this.stateFile, data);
@@ -45,50 +34,50 @@ class App {
 
     private loadAppState() {
         let data = fs.readFileSync(this.stateFile);
-        this.state = JSON.parse(data.toString());
+        this.ctx.state = JSON.parse(data.toString());
     }
 
     private async updateNamespaceList(doneCb: () => void) {
-        this.client.getNamespaces((error, namespaces) => {
+        this.ctx.client.getNamespaces((error, namespaces) => {
             if (error) {
                 console.log("Error updating namespace list:", error);
                 return;
             }
             // update state
-            this.state.namespaces = namespaces;
+            this.ctx.state.namespaces = namespaces;
             let index = -1;
-            if (this.state.namespace !== null) {
+            if (this.ctx.state.namespace !== null) {
                 index = namespaces.findIndex(namespace => {
-                    return namespace.metadata.name == this.state.namespace.metadata.name;
+                    return namespace.metadata.name == this.ctx.state.namespace.metadata.name;
                 });
             }
             if (index == -1) {
                 index = 0;
             }
-            this.state.namespace = namespaces[index];
+            this.ctx.state.namespace = namespaces[index];
             this.topBar.update();
             doneCb();
         });
     }
 
     private async updateApiList(doneCb: () => void) {
-        this.client.getListableAPIResources((error, resources) => {
+        this.ctx.client.getListableAPIResources((error, resources) => {
             if (error) {
                 console.log(error);
                 return;
             }
             // update state
-            this.state.apiResources = resources;
+            this.ctx.state.apiResources = resources;
             let index = -1;
-            if (this.state.apiResource !== null) {
+            if (this.ctx.state.apiResource !== null) {
                 index = resources.findIndex(resource => {
-                    return resource.resource.name == this.state.apiResource.resource.name;
+                    return resource.resource.name == this.ctx.state.apiResource.resource.name;
                 });
             }
             if (index == -1) {
                 index = 0;
             }
-            this.state.apiResource = resources[index];
+            this.ctx.state.apiResource = resources[index];
             this.apiList.setValues(resources.map(r => { return r.getLongName(); }));
             this.apiList.select(index);
             doneCb();
@@ -99,10 +88,10 @@ class App {
 
     private updateContents() {
         this.updateNamespaceList(() => {
-            this.screen.render();
+            this.ctx.screen.render();
         });
         this.updateApiList(() => {
-            this.screen.render();
+            this.ctx.screen.render();
         });
     }
 
@@ -113,7 +102,7 @@ class App {
         fs.mkdirSync(logDir, {recursive: true, mode: 0o750});
         let logFile = logDir + "/kui.log";
 
-        this.screen = blessed.screen({
+        this.ctx.screen = blessed.screen({
             smartCSR: true,
             log: logFile,
         });
@@ -121,13 +110,13 @@ class App {
         try {
             this.loadAppState();
         } catch (e) {
-            this.screen.log(`Could not load config: ${e.toString()}`);
+            this.ctx.screen.log(`Could not load config: ${e.toString()}`);
         }
 
-        this.screen.title = "KUI";
+        this.ctx.screen.title = "KUI";
 
         var box = blessed.box({
-            parent: this.screen,
+            parent: this.ctx.screen,
             top: 0,
             left: 0,
             width: "100%",
@@ -135,28 +124,28 @@ class App {
             tags: true,
             focusable: false,
         });
-        box.style.bg = AppDefaults.COLOR_BG;
-        box.style.fg = AppDefaults.COLOR_FG;
+        box.style.bg = this.ctx.colorScheme.COLOR_BG;
+        box.style.fg = this.ctx.colorScheme.COLOR_FG;
 
-        this.topBar = new TopBarWidget(box);
+        this.topBar = new TopBarWidget(this.ctx, box);
         this.topBar.addItems([{
             key: "c",
             labelCallback: () => {
-                return `[C]ontext: ${this.kubeConfig.getCurrentContext()}`;
+                return `[C]ontext: ${this.ctx.kubeConfig.getCurrentContext()}`;
             },
             actionCallback: () => {
-                const contexts = this.kubeConfig.getContexts();
-                const currentContext = this.kubeConfig.getCurrentContext();
+                const contexts = this.ctx.kubeConfig.getContexts();
+                const currentContext = this.ctx.kubeConfig.getCurrentContext();
                 const currentIndex = contexts.findIndex(context => { return context.name == currentContext; });
-                const list = WidgetFactory.list(
+                const list = this.ctx.widgetFactory.list(
                     "Choose Context",
                     contexts.map(context => { return context.name; }),
                     {
                         parent: box,
                     },
                     (context, index) => {
-                        this.kubeConfig.setCurrentContext(contexts[index].name);
-                        this.client.kubeConfig = this.kubeConfig;
+                        this.ctx.kubeConfig.setCurrentContext(contexts[index].name);
+                        this.ctx.client.kubeConfig = this.ctx.kubeConfig;
                         childProcess.execFile("kubectl", [
                             "config", "use-context", contexts[index].name
                         ], {
@@ -179,28 +168,29 @@ class App {
         },{
             key: "n",
             labelCallback: () => {
-                return `[N]amespace: ${this.state.namespace ? this.state.namespace.metadata.name : "n/a"}`;
+                return `[N]amespace: ${this.ctx.state.namespace ? this.ctx.state.namespace.metadata.name : "n/a"}`;
             },
             actionCallback: () => {
                 this.resourceListWidget.freeze();
-                this.screen.saveFocus();
-                const list = new DrilldownWidget(this.state.namespaces.map(n => { return n.metadata.name; }), {
-                    parent: this.screen,
-                    label: "Choose Namespace",
-                });
+                this.ctx.screen.saveFocus();
+                const list = new DrilldownWidget(this.ctx,
+                    this.ctx.state.namespaces.map(n => { return n.metadata.name; }), {
+                        parent: this.ctx.screen,
+                        label: "Choose Namespace",
+                    });
                 list.onSelect((value, index) => {
-                    this.state.namespace = self.state.namespaces[index];
+                    this.ctx.state.namespace = this.ctx.state.namespaces[index];
                     this.topBar.update();
                     this.resourceListWidget.refresh();
                 });
                 list.onClose(() => {
                     list.destroy();
-                    this.screen.restoreFocus();
+                    this.ctx.screen.restoreFocus();
                     this.resourceListWidget.unfreeze();
                 });
                 list.onBlur(() => {
                     list.destroy();
-                    this.screen.restoreFocus();
+                    this.ctx.screen.restoreFocus();
                     this.resourceListWidget.unfreeze();
                 });
                 list.focus();
@@ -216,7 +206,7 @@ class App {
             focusable: false,
         });
 
-        this.apiList = new DrilldownWidget([], {
+        this.apiList = new DrilldownWidget(this.ctx, [], {
             label: "API Resources",
             parent: leftPane,
             top: 0,
@@ -226,13 +216,13 @@ class App {
         });
         this.apiList.onSelect((value: string, index: number) => {
             if (index == -1) {
-                this.state.apiResource = null;
+                this.ctx.state.apiResource = null;
             }
             else {
-                this.state.apiResource = this.state.apiResources[index];
+                this.ctx.state.apiResource = this.ctx.state.apiResources[index];
             }
             this.resourceListWidget.refresh();
-            this.screen.focusNext();
+            this.ctx.screen.focusNext();
         });
         this.apiList.key("tab", () => {
             // NOTE: crude hack
@@ -258,70 +248,70 @@ class App {
             }
         });
 
-        this.resourceListWidget = new ResourceListWidget(this.state, this.client);
+        this.resourceListWidget = new ResourceListWidget(this.ctx);
         this.resourceListWidget.appendTo(mainPane);
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        this.screen.key(["C-r"], (ch, key) => {
+        this.ctx.screen.key(["C-r"], (ch, key) => {
             self.updateContents();
         });
 
-        this.screen.key(["C-l"], () => {
+        this.ctx.screen.key(["C-l"], () => {
             // FIXME: dirty redraw hack
             box.hide();
-            self.screen.render();
+            this.ctx.screen.render();
             box.show();
-            self.screen.render();
+            this.ctx.screen.render();
         });
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        this.screen.key(["q", "C-c", "C-q"], (ch, key) => {
+        this.ctx.screen.key(["q", "C-c", "C-q"], (ch, key) => {
             this.saveAppState();
             return process.exit(0);
         });
 
-        this.screen.key(["tab"], () => {
-            this.screen.focusNext();
+        this.ctx.screen.key(["tab"], () => {
+            this.ctx.screen.focusNext();
         });
-        this.screen.key(["S-tab"], () => {
-            this.screen.focusPrevious();
+        this.ctx.screen.key(["S-tab"], () => {
+            this.ctx.screen.focusPrevious();
         });
 
-        this.screen.key(["]"], () => {
+        this.ctx.screen.key(["]"], () => {
             this.resourceListWidget.cycleRefreshSlower();
         });
 
-        this.screen.key(["["], () => {
+        this.ctx.screen.key(["["], () => {
             this.resourceListWidget.cycleRefreshFaster();
         });
 
-        this.screen.key(["space"], () => {
+        this.ctx.screen.key(["space"], () => {
             this.resourceListWidget.pause();
         });
 
-        this.screen.key(["?", "h", "f1"], () => {
+        this.ctx.screen.key(["?", "h", "f1"], () => {
             this.help();
         });
 
-        this.screen.render();
+        this.ctx.screen.render();
         this.resourceListWidget.focus();
         this.updateContents();
     }
 
     private help() {
         this.resourceListWidget.freeze();
-        const helpBox = WidgetFactory.textBox({
-            parent: this.screen,
+        const helpBox = this.ctx.widgetFactory.textBox({
+            parent: this.ctx.screen,
             label: "Keyboard Shortcuts",
             top: "center",
             left: "center",
             width: 72,
             height: 24,
         });
-        this.screen.grabKeys = true;
+        this.ctx.screen.grabKeys = true;
         helpBox.key("escape", () => {
             helpBox.destroy();
-            this.screen.grabKeys = false;
+            this.ctx.screen.grabKeys = false;
             this.resourceListWidget.unfreeze();
         });
 
@@ -355,7 +345,13 @@ class App {
     }
 
     public static run() {
-        const app = new App();
+        const ctx = new AppContext();
+        ctx.kubeConfig = new k8s.KubeConfig();
+        ctx.kubeConfig.loadFromDefault();
+        ctx.client = new k8sClient.K8sClient(ctx.kubeConfig);
+        ctx.widgetFactory = new WidgetFactory(new LightColorScheme());
+
+        const app = new App(ctx);
         app.main();
     }
 }

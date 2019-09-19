@@ -1,6 +1,6 @@
 import * as blessed from "blessed";
 import _ from "lodash";
-import { AppDefaults } from "./app_defaults";
+import { ColorScheme } from "./color_scheme";
 
 interface PromptOptions extends blessed.Widgets.PromptOptions {
     parent: blessed.Widgets.Node;
@@ -19,7 +19,13 @@ interface ListOptions<T> extends blessed.Widgets.ListOptions<T> {
 }
 
 export class WidgetFactory {
-    public static prompt(options: PromptOptions): blessed.Widgets.PromptElement {
+    private colorScheme: ColorScheme;
+
+    public constructor(colorScheme: ColorScheme) {
+        this.colorScheme = colorScheme;
+    }
+
+    public prompt(options: PromptOptions): blessed.Widgets.PromptElement {
         const screen = options.parent.screen;
 
         const prompt = blessed.prompt(_.merge({
@@ -32,32 +38,32 @@ export class WidgetFactory {
                 top: 1
             }
         }, options));
-        prompt.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+        prompt.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
 
-        prompt.data.input.style.bg = AppDefaults.COLOR_INPUT_BG;
-        prompt.data.input.style.fg = AppDefaults.COLOR_INPUT_FG;
+        prompt.data.input.style.bg = this.colorScheme.COLOR_INPUT_BG;
+        prompt.data.input.style.fg = this.colorScheme.COLOR_INPUT_FG;
         prompt.data.input.style.bold = true;
-        prompt.data.okay.style.bg = AppDefaults.COLOR_BUTTON_BG;
-        prompt.data.okay.style.fg = AppDefaults.COLOR_BUTTON_FG;
+        prompt.data.okay.style.bg = this.colorScheme.COLOR_BUTTON_BG;
+        prompt.data.okay.style.fg = this.colorScheme.COLOR_BUTTON_FG;
         prompt.data.okay.style.bold = true;
-        prompt.data.cancel.style.bg = AppDefaults.COLOR_BUTTON_BG;
-        prompt.data.cancel.style.fg = AppDefaults.COLOR_BUTTON_FG;
+        prompt.data.cancel.style.bg = this.colorScheme.COLOR_BUTTON_BG;
+        prompt.data.cancel.style.fg = this.colorScheme.COLOR_BUTTON_FG;
         prompt.data.cancel.style.bold = true;
         prompt.data.cancel.padding.left = 1;
 
         prompt.on("focus", () => {
-            // prompt.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+            // prompt.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
             screen.render();
         });
         prompt.on("blur", () => {
-            // prompt.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+            // prompt.style.border.bg = this.colorScheme.COLOR_BORDER_BG;
             screen.render();
         });
 
         return prompt;
     }
 
-    public static question(options: QuestionOptions) {
+    public question(options: QuestionOptions) {
         const screen = options.parent.screen;
 
         let question = blessed.question(_.merge({
@@ -72,29 +78,29 @@ export class WidgetFactory {
                 top: 1
             }
         }, options));
-        question.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+        question.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
 
-        question.data.okay.style.bg = AppDefaults.COLOR_BUTTON_BG;
-        question.data.okay.style.fg = AppDefaults.COLOR_BUTTON_FG;
+        question.data.okay.style.bg = this.colorScheme.COLOR_BUTTON_BG;
+        question.data.okay.style.fg = this.colorScheme.COLOR_BUTTON_FG;
         question.data.okay.style.bold = true;
-        question.data.cancel.style.bg = AppDefaults.COLOR_BUTTON_BG;
-        question.data.cancel.style.fg = AppDefaults.COLOR_BUTTON_FG;
+        question.data.cancel.style.bg = this.colorScheme.COLOR_BUTTON_BG;
+        question.data.cancel.style.fg = this.colorScheme.COLOR_BUTTON_FG;
         question.data.cancel.style.bold = true;
         question.data.cancel.padding.left = 1;
 
         question.on("focus", () => {
-            question.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+            question.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
             screen.render();
         });
         question.on("blur", () => {
-            question.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+            question.style.border.bg = this.colorScheme.COLOR_BORDER_BG;
             screen.render();
         });
 
         return question;
     }
 
-    public static textBox(options: BoxOptions): blessed.Widgets.BoxElement {
+    public textBox(options: BoxOptions): blessed.Widgets.BoxElement {
         const screen = options.parent.screen;
 
         const box = blessed.box(_.merge({
@@ -110,14 +116,14 @@ export class WidgetFactory {
             scrollbar:  {
                 ch: " ",
                 track: {
-                    bg: AppDefaults.COLOR_SCROLLBAR_BG
+                    bg: this.colorScheme.COLOR_SCROLLBAR_BG
                 },
                 style: {
                     inverse: true
                 }
             },
         }, options));
-        box.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+        box.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
         box.setIndex(100);
         box.key("pageup", () => {
             box.scroll(-(box.height / 2 | 0) || -1);
@@ -132,7 +138,7 @@ export class WidgetFactory {
         return box;
     }
 
-    public static list(label: string | null, values: string[],
+    public list(label: string | null, values: string[],
         options: ListOptions<blessed.Widgets.ListElementStyle>,
         onSelect?: (item: string, index: number) => void) {
         if (values.length == 0) {
@@ -165,7 +171,7 @@ export class WidgetFactory {
                 }
             },
         }, options));
-        list.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+        list.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
         list.on("blur", () => {
             list.hide();
             list.destroy();

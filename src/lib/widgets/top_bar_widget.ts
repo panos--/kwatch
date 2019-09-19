@@ -1,5 +1,5 @@
 import * as blessed from "blessed";
-import { AppDefaults } from "../app_defaults";
+import { AppContext } from "../app_context";
 
 export interface TopBarItemOptions {
     key: string;
@@ -12,14 +12,13 @@ interface TopBarItem extends TopBarItemOptions {
 }
 
 export class TopBarWidget {
-    private screen: blessed.Widgets.Screen;
+    private ctx: AppContext;
     private parent: blessed.Widgets.Node;
     private topBar: blessed.Widgets.BoxElement;
     private items: TopBarItem[] = [];
 
-    public constructor(parent: blessed.Widgets.Node) {
+    public constructor(ctx: AppContext, parent: blessed.Widgets.Node) {
         this.parent = parent;
-        this.screen = parent.screen;
         this.init();
     }
 
@@ -41,8 +40,8 @@ export class TopBarWidget {
                 }
             }
         });
-        this.topBar.style.bg = AppDefaults.COLOR_BG;
-        this.topBar.style.fg = AppDefaults.COLOR_FG;
+        this.topBar.style.bg = this.ctx.colorScheme.COLOR_BG;
+        this.topBar.style.fg = this.ctx.colorScheme.COLOR_FG;
     }
 
     public update() {
@@ -54,7 +53,7 @@ export class TopBarWidget {
             item.box.setText(label);
             currentOffset += item.box.width + 1;
         }
-        this.screen.render();
+        this.ctx.screen.render();
     }
 
     private addItemInternal(itemOptions: TopBarItemOptions) {
@@ -86,7 +85,7 @@ export class TopBarWidget {
             actionCallback: itemOptions.actionCallback,
             box: itemBox,
         });
-        this.screen.key([itemOptions.key], () => { itemOptions.actionCallback(); });
+        this.ctx.screen.key([itemOptions.key], () => { itemOptions.actionCallback(); });
     }
 
     public addItem(itemOptions: TopBarItemOptions) {

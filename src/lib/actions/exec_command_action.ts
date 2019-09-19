@@ -1,17 +1,16 @@
-import * as blessed from "blessed";
 import { V1Namespace } from "@kubernetes/client-node";
 import { ExecAction } from "./exec_action";
-import { WidgetFactory } from "../widget_factory";
+import { AppContext } from "../app_context";
 
 export class ExecCommandAction extends ExecAction {
     public getLabel() {
         return "Exec Command...";
     }
 
-    protected executeCommand(screen: blessed.Widgets.Screen, namespace: V1Namespace, resource: string, container: string,
+    protected executeCommand(ctx: AppContext, namespace: V1Namespace, resource: string, container: string,
         executeCallback: (command: string, args?: string[], wait?: boolean) => void): void {
-        const prompt = WidgetFactory.prompt({
-            parent: screen,
+        const prompt = ctx.widgetFactory.prompt({
+            parent: ctx.screen,
             label: "Enter command",
             width: 50,
         });

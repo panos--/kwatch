@@ -1,9 +1,9 @@
-import * as blessed from "blessed";
 import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
-import { APIResource, K8sClient } from "../client";
+import { APIResource } from "../client";
 import { BlessedUtils } from "../blessed_utils";
 import { ContainerPicker } from "../widgets/container_picker";
+import { AppContext } from "../app_context";
 
 export abstract class ExecAction implements Action {
     public abstract getLabel(): string;
@@ -12,20 +12,20 @@ export abstract class ExecAction implements Action {
         return apiResource.resource.name == "pods";
     }
 
-    public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
-        client.getPod(resource, namespace.metadata.name).then(pod => {
+    public execute(ctx: AppContext, namespace: V1Namespace, apiResource: APIResource, resource: string) {
+        ctx.client.getPod(resource, namespace.metadata.name).then(pod => {
             let containers = pod.spec.containers.map(container => { return container.name; });
             if (containers.length == 0) {
                 // should not happen
                 throw "no containers found in pod";
             }
             else if (containers.length == 1) {
-                this.executeCommandInternal(screen, namespace, resource, containers[0]);
+                this.executeCommandInternal(ctx, namespace, resource, containers[0]);
             }
             else {
-                const containerPicker = new ContainerPicker(containers, screen);
+                const containerPicker = new ContainerPicker(ctx, containers, ctx.screen);
                 containerPicker.onSelect(container => {
-                    this.executeCommandInternal(screen, namespace, resource, container);
+                    this.executeCommandInternal(ctx, namespace, resource, container);
                 });
                 containerPicker.show();
             }
@@ -38,11 +38,11 @@ export abstract class ExecAction implements Action {
         });
     }
 
-    protected abstract executeCommand(screen: blessed.Widgets.Screen, namespace: V1Namespace, resource: string, container: string,
+    protected abstract executeCommand(ctx: AppContext, namespace: V1Namespace, resource: string, container: string,
         execCallback: (command: string, args?: string[]) => void): void;
 
-    private executeCommandInternal(screen: blessed.Widgets.Screen, namespace: V1Namespace, resource: string, container: string) {
-        this.executeCommand(screen, namespace, resource, container, (command: string, args: string[], wait?: boolean) => {
+    private executeCommandInternal(ctx: AppContext, namespace: V1Namespace, resource: string, container: string) {
+        this.executeCommand(ctx, namespace, resource, container, (command: string, args: string[], wait?: boolean) => {
             const kubectlCmd = "kubectl";
             const kubectlArgs = [
                 "-n",
@@ -68,10 +68,10 @@ export abstract class ExecAction implements Action {
                 }
             };
             if (wait) {
-                BlessedUtils.executeCommandWait(screen, kubectlCmd, kubectlArgs, resultCallback);
+                BlessedUtils.executeCommandWait(ctx.screen, kubectlCmd, kubectlArgs, resultCallback);
             }
             else {
-                BlessedUtils.executeCommand(screen, kubectlCmd, kubectlArgs, resultCallback);
+                BlessedUtils.executeCommand(ctx.screen, kubectlCmd, kubectlArgs, resultCallback);
             }
         });
     }

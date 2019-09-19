@@ -1,13 +1,15 @@
 import * as blessed from "blessed";
-import { AppDefaults } from "../app_defaults";
+import { AppContext } from "../app_context";
 
 export class ContainerPicker {
+    private ctx: AppContext;
     private containers: string[];
     private parent: blessed.Widgets.Node;
     private containerMenu: blessed.Widgets.ListElement;
     private onSelectCallback: (container: string) => void
 
-    public constructor(containers: string[], parent: blessed.Widgets.Node) {
+    public constructor(ctx: AppContext, containers: string[], parent: blessed.Widgets.Node) {
+        this.ctx = ctx;
         this.containers = containers;
         this.parent = parent;
         this.init();
@@ -43,7 +45,7 @@ export class ContainerPicker {
                 }
             },
         });
-        this.containerMenu.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+        this.containerMenu.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
         this.containerMenu.on("blur", () => {
             this.containerMenu.hide();
             this.containerMenu.destroy();

@@ -1,9 +1,8 @@
 import * as blessed from "blessed";
 import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
-import { APIResource, K8sClient } from "../client";
-import { WidgetFactory } from "../widget_factory";
-import { AppDefaults } from "../app_defaults";
+import { APIResource } from "../client";
+import { AppContext } from "../app_context";
 
 export class ForceDeleteAction implements Action {
     public getLabel() {
@@ -14,8 +13,8 @@ export class ForceDeleteAction implements Action {
         return apiResource.resource.verbs.includes("delete");
     }
 
-    public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
-        const question = WidgetFactory.question({ parent: screen, width: 80 });
+    public execute(ctx: AppContext, namespace: V1Namespace, apiResource: APIResource, resource: string) {
+        const question = ctx.widgetFactory.question({ parent: ctx.screen, width: 80 });
         question.data.okay.top = 5;
         question.data.cancel.top = 5;
         question.ask(
@@ -27,7 +26,7 @@ export class ForceDeleteAction implements Action {
                     return;
                 }
                 let loading = blessed.loading({
-                    parent: screen,
+                    parent: ctx.screen,
                     top: "center",
                     left: "center",
                     height: 5,
@@ -36,9 +35,9 @@ export class ForceDeleteAction implements Action {
                     keys: true,
                     border: "line",
                 });
-                loading.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+                loading.style.border.bg = ctx.colorScheme.COLOR_BORDER_BG;
                 loading.load("Deleting...");
-                client.deleteResource(namespace, apiResource, resource, true, (error) => {
+                ctx.client.deleteResource(namespace, apiResource, resource, true, (error) => {
                     if (error) {
                         throw error;
                     }

@@ -1,15 +1,11 @@
 import * as blessed from "blessed";
-import { AppState } from "../app_state";
-import { K8sClient, APIResource } from "../client";
+import { APIResource } from "../client";
 import { ResourceActionMenu } from "./resource_action_menu";
 import { V1Namespace } from "@kubernetes/client-node";
-import { AppDefaults } from "../app_defaults";
+import { AppContext } from "../app_context";
 
 export class ResourceListWidget {
-    private state: AppState;
-    private client: K8sClient;
-
-    private screen: blessed.Widgets.Screen = null;
+    private ctx: AppContext;
 
     private paused = false;
     private frozen = false;
@@ -29,9 +25,8 @@ export class ResourceListWidget {
     private resourceList: blessed.Widgets.ListElement;
     private actionMenu: ResourceActionMenu;
 
-    public constructor(state: AppState, client: K8sClient) {
-        this.state = state;
-        this.client = client;
+    public constructor(ctx: AppContext) {
+        this.ctx = ctx;
         this.init();
     }
 
@@ -47,7 +42,7 @@ export class ResourceListWidget {
             scrollbar: {
                 ch: " ",
                 track: {
-                    bg: AppDefaults.COLOR_SCROLLBAR_BG
+                    bg: this.ctx.colorScheme.COLOR_SCROLLBAR_BG
                 },
                 style: {
                     inverse: true
@@ -67,13 +62,13 @@ export class ResourceListWidget {
                 }
             },
         });
-        this.resourceList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+        this.resourceList.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
         this.resourceList.on("focus", () => {
-            this.resourceList.style.border.bg = AppDefaults.COLOR_BORDER_BG_FOCUS;
+            this.resourceList.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
             this.render();
         });
         this.resourceList.on("blur", () => {
-            this.resourceList.style.border.bg = AppDefaults.COLOR_BORDER_BG;
+            this.resourceList.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
             this.render();
         });
         this.resourceList.key("pageup", () => {
@@ -120,7 +115,7 @@ export class ResourceListWidget {
             }
             else {
                 let apiResourceName = resParts[0];
-                apiResource = this.state.apiResources.find((apiResource) => {
+                apiResource = this.ctx.state.apiResources.find((apiResource) => {
                     if (apiResource.resource.name == apiResourceName) {
                         return true;
                     }
@@ -137,7 +132,7 @@ export class ResourceListWidget {
             }
         });
 
-        this.actionMenu = new ResourceActionMenu(this.state, this.client, this.resourceList);
+        this.actionMenu = new ResourceActionMenu(this.ctx, this.resourceList);
         this.actionMenu.onAfterClose(() => { this.unfreeze(); });
 
         this.run();
@@ -145,12 +140,12 @@ export class ResourceListWidget {
 
     public appendTo(box: blessed.Widgets.BoxElement) {
         box.append(this.resourceList);
-        this.screen = this.resourceList.screen;
+        this.ctx.screen = this.resourceList.screen;
     }
 
     private render() {
-        if (this.screen !== null) {
-            this.screen.render();
+        if (this.ctx.screen !== null) {
+            this.ctx.screen.render();
         }
     }
 
@@ -164,7 +159,7 @@ export class ResourceListWidget {
             this.timeout = setTimeout(() => { this.update(); }, this.intervals[this.interval] * 1000);
         }
 
-        if (this.frozen || this.state.namespace === null || this.state.apiResource === null) {
+        if (this.frozen || this.ctx.state.namespace === null || this.ctx.state.apiResource === null) {
             reschedule.call(this);
             return;
         }
@@ -184,14 +179,14 @@ export class ResourceListWidget {
             refreshRate = "Paused";
         }
         else {
-            namespace = this.state.namespace;
-            apiResource = this.state.apiResource;
+            namespace = this.ctx.state.namespace;
+            apiResource = this.ctx.state.apiResource;
             time = new Date();
             refreshRate = this.intervals[this.interval] + "s";
         }
 
-        let namespaceName = this.state.namespace.metadata.name;
-        let apiResourceName = this.state.apiResource.resource.name;
+        let namespaceName = this.ctx.state.namespace.metadata.name;
+        let apiResourceName = this.ctx.state.apiResource.resource.name;
         let timestamp = time.toLocaleString(undefined, {
             hour12: false,
         }) + "." + time.getMilliseconds();
@@ -204,7 +199,7 @@ export class ResourceListWidget {
             return;
         }
 
-        this.client.listResourcesFormatted(namespace.metadata.name, [
+        this.ctx.client.listResourcesFormatted(namespace.metadata.name, [
             apiResource.resource.name
         ], (error, lines) => {
             if (this.paused || this.frozen) {

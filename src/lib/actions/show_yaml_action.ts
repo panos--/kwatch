@@ -1,8 +1,7 @@
-import * as blessed from "blessed";
 import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
-import { APIResource, K8sClient } from "../client";
-import { WidgetFactory } from "../widget_factory";
+import { APIResource } from "../client";
+import { AppContext } from "../app_context";
 
 export class ShowYamlAction implements Action {
     public getLabel() {
@@ -13,10 +12,10 @@ export class ShowYamlAction implements Action {
         return true;
     }
 
-    public execute(client: K8sClient, screen: blessed.Widgets.Screen, namespace: V1Namespace, apiResource: APIResource, resource: string) {
-        client.getResourceAsYaml(namespace, apiResource, resource, (error, lines) => {
-            const box = WidgetFactory.textBox({
-                parent: screen,
+    public execute(ctx: AppContext, namespace: V1Namespace, apiResource: APIResource, resource: string) {
+        ctx.client.getResourceAsYaml(namespace, apiResource, resource, (error, lines) => {
+            const box = ctx.widgetFactory.textBox({
+                parent: ctx.screen,
             });
             box.setLabel(
                 (apiResource.resource.namespaced ? namespace.metadata.name + " / " : "")
@@ -31,7 +30,7 @@ export class ShowYamlAction implements Action {
             }
 
             box.focus();
-            screen.render();
+            ctx.screen.render();
         });
     }
 }

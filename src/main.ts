@@ -366,6 +366,7 @@ class App {
         ctx.client = new k8sClient.K8sClient(ctx.kubeConfig);
         ctx.colorScheme = colorScheme;
         ctx.widgetFactory = new WidgetFactory(ctx.colorScheme);
+        ctx.pager = process.env.PAGER || "less";
 
         const app = new App(ctx);
         app.main();

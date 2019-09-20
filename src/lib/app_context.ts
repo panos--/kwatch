@@ -18,4 +18,5 @@ export class AppContext {
     public colorScheme: ColorScheme;
     public widgetFactory: WidgetFactory;
     public state: State;
+    public pager: string;
 }

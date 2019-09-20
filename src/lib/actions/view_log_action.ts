@@ -43,7 +43,7 @@ export class ViewLogAction implements Action {
 
     private executeCommand(ctx: AppContext, namespace: V1Namespace, resource: string, container: string) {
         const commandArray = ["kubectl", "-n", namespace.metadata.name, "logs", "--tail=1000", "-c", container, resource]
-            .map(arg => { return `"${arg.replace("\"", "\\\"")}"`; });
+            .map(arg => { return `"${arg.replace(/"/g, "\\\"")}"`; });
         commandArray.push("|");
         // TODO: generalize or make configurable
         commandArray.push("pager");

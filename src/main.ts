@@ -1,3 +1,4 @@
+import yargs from "yargs";
 import * as fs from "fs";
 import * as path from "path";
 import childProcess from "child_process";
@@ -9,7 +10,7 @@ import { WidgetFactory } from "./lib/widget_factory";
 import { TopBarWidget } from "./lib/widgets/top_bar_widget";
 import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
 import { AppContext } from "./lib/app_context";
-import { LightColorScheme } from "./lib/color_scheme";
+import { LightColorScheme, DarkColorScheme, ColorScheme } from "./lib/color_scheme";
 
 class App {
     private ctx: AppContext;
@@ -344,12 +345,31 @@ class App {
         helpBox.focus();
     }
 
-    public static run() {
+    public static run(argv0: string, argv: string[]) {
+        const args = yargs
+            .usage("usage: $0 [options]")
+            .string("color-scheme")
+            .alias("c", "color-scheme")
+            .choices("color-scheme", ["light", "dark"])
+            .default("color-scheme", "light")
+            .describe("color-scheme", "Specify color scheme: light, dark")
+            .alias("h", "help")
+            .parse(argv);
+
+        const colorSchemes: {[index: string]: ColorScheme} = {
+            light: new LightColorScheme(),
+            dark: new DarkColorScheme(),
+        };
+        const colorScheme = colorSchemes[args["color-scheme"]];
+        if (!colorScheme) {
+            throw "undefined color-scheme";
+        }
+
         const ctx = new AppContext();
         ctx.kubeConfig = new k8s.KubeConfig();
         ctx.kubeConfig.loadFromDefault();
         ctx.client = new k8sClient.K8sClient(ctx.kubeConfig);
-        ctx.colorScheme = new LightColorScheme();
+        ctx.colorScheme = colorScheme;
         ctx.widgetFactory = new WidgetFactory(ctx.colorScheme);
 
         const app = new App(ctx);
@@ -357,4 +377,4 @@ class App {
     }
 }
 
-App.run();
+App.run(process.argv0, process.argv);

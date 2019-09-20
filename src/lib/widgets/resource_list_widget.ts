@@ -5,11 +5,13 @@ import { V1Namespace } from "@kubernetes/client-node";
 import { AppContext } from "../app_context";
 
 export class ResourceListWidget {
+    private static readonly DEFAULT_INTERVAL = 3;
+
     private ctx: AppContext;
 
     private paused = false;
     private frozen = false;
-    private interval = 3;
+    private interval = ResourceListWidget.DEFAULT_INTERVAL;
     private intervals = [10, 5, 2, 1, 0.5];
 
     // the currently selected list entry
@@ -31,6 +33,11 @@ export class ResourceListWidget {
     }
 
     private init() {
+        this.interval = this.ctx.state.refreshInterval;
+        if (this.interval === undefined || this.interval === null
+            || this.interval < 0 || this.interval >= this.intervals.length) {
+            this.interval = ResourceListWidget.DEFAULT_INTERVAL;
+        }
         this.resourceList = blessed.list({
             top: 0,
             left: 0,
@@ -239,6 +246,7 @@ export class ResourceListWidget {
         if (this.interval < 0) {
             this.interval = this.intervals.length - 1;
         }
+        this.ctx.state.refreshInterval = this.interval;
         this.timeout = setTimeout(() => { this.update(); }, 100);
     }
 
@@ -251,6 +259,7 @@ export class ResourceListWidget {
         else {
             this.interval++;
         }
+        this.ctx.state.refreshInterval = this.interval;
         this.timeout = setTimeout(() => { this.update(); }, 100);
     }
 

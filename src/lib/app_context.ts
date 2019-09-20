@@ -9,6 +9,7 @@ export interface State {
     namespaces: V1Namespace[];
     apiResource: APIResource;
     apiResources: APIResource[];
+    refreshInterval: number;
 }
 
 export class AppContext {

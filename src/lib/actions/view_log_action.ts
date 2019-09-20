@@ -1,6 +1,5 @@
 import { Action } from "./action";
-import { APIResource, K8sClient } from "../client";
-import * as blessed from "blessed";
+import { APIResource } from "../client";
 import { V1Namespace } from "@kubernetes/client-node";
 import { ContainerPicker } from "../widgets/container_picker";
 import { BlessedUtils } from "../blessed_utils";

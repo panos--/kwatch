@@ -1,3 +1,4 @@
+
 import * as blessed from "blessed";
 import _ from "lodash";
 import { AppContext } from "../app_context";
@@ -15,7 +16,6 @@ export class DrilldownWidget {
     private list: blessed.Widgets.ListElement;
 
     private onSelectCallback: (value: string, index: number) => void;
-    private onCloseCallback: () => void;
 
     private search = "";
     private filteredValues: string[];
@@ -35,7 +35,6 @@ export class DrilldownWidget {
         this.box = blessed.box(_.merge({
             top: "center",
             left: "center",
-            // height: 30,
             height: 15,
             width: 50,
             border: "line",
@@ -115,7 +114,6 @@ export class DrilldownWidget {
 
     private submit() {
         let value = this.selectedItem;
-        // this.close();
         if (this.onSelectCallback) {
             this.onSelectCallback.call(null, value, this.values.indexOf(value));
         }
@@ -123,10 +121,6 @@ export class DrilldownWidget {
 
     public onSelect(callback: (value: string, index: number) => void) {
         this.onSelectCallback = callback;
-    }
-
-    public onClose(callback: () => void) {
-        this.onCloseCallback = callback;
     }
 
     public onBlur(callback: () => void) {
@@ -141,14 +135,6 @@ export class DrilldownWidget {
         this.input.setValue("");
     }
 
-    // private close() {
-    //     this.box.hide();
-    //     this.reset();
-    //     if (this.onCloseCallback) {
-    //         this.onCloseCallback.call(null);
-    //     }
-    // }
-
     public destroy() {
         this.input.destroy();
         this.list.destroy();
@@ -157,9 +143,6 @@ export class DrilldownWidget {
 
     private inputKeypress(ch: string, key: any) {
         if (key.name == "escape") {
-            // this.close();
-            // this.screen.render();
-            this.screen.focusNext();
             this.screen.render();
             return;
         }
@@ -253,6 +236,5 @@ export class DrilldownWidget {
 
     public key(name: string | string[], listener: (ch: any, key: blessed.Widgets.Events.IKeyEventArg) => void) {
         this.input.key(name, listener);
-        // this.list.key(name, listener);
     }
 }

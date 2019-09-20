@@ -184,11 +184,6 @@ class App {
                     this.topBar.update();
                     this.resourceListWidget.refresh();
                 });
-                list.onClose(() => {
-                    list.destroy();
-                    this.ctx.screen.restoreFocus();
-                    this.resourceListWidget.unfreeze();
-                });
                 list.onBlur(() => {
                     list.destroy();
                     this.ctx.screen.restoreFocus();

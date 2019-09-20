@@ -26,6 +26,7 @@ export class ResourceActionMenu {
     private onAfterCloseCallback: () => void = null;
 
     public constructor(ctx: AppContext, parent: blessed.Widgets.Node) {
+        this.ctx = ctx;
         this.parent = parent;
         this.init();
     }

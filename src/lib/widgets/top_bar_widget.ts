@@ -18,6 +18,7 @@ export class TopBarWidget {
     private items: TopBarItem[] = [];
 
     public constructor(ctx: AppContext, parent: blessed.Widgets.Node) {
+        this.ctx = ctx;
         this.parent = parent;
         this.init();
     }

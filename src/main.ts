@@ -349,7 +349,8 @@ class App {
         ctx.kubeConfig = new k8s.KubeConfig();
         ctx.kubeConfig.loadFromDefault();
         ctx.client = new k8sClient.K8sClient(ctx.kubeConfig);
-        ctx.widgetFactory = new WidgetFactory(new LightColorScheme());
+        ctx.colorScheme = new LightColorScheme();
+        ctx.widgetFactory = new WidgetFactory(ctx.colorScheme);
 
         const app = new App(ctx);
         app.main();

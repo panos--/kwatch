@@ -80,13 +80,17 @@ export class ResourceListWidget {
         });
         this.resourceList.key("pageup", () => {
             // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
-            let offset = -(this.resourceList.height / 2 | 0) || -1;
+            let height = this.resourceList.height;
+            height = (typeof height == "number" ? height : parseInt(height));
+            let offset = -(height / 2 | 0) || -1;
             this.resourceList.select(this.activeResourceIndex + offset);
             this.resourceList.scrollTo(this.activeResourceIndex + offset);
         });
         this.resourceList.key("pagedown", () => {
             // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
-            let offset = (this.resourceList.height / 2 | 0) || -1;
+            let height = this.resourceList.height;
+            height = (typeof height == "number" ? height : parseInt(height));
+            let offset = (height / 2 | 0) || -1;
             this.resourceList.select(this.activeResourceIndex + offset);
             this.resourceList.scrollTo(this.activeResourceIndex + offset);
         });

@@ -34,11 +34,13 @@ const colorBox = blessed.box({
     },
 });
 colorBox.key("pageup", () => {
-    colorBox.scroll(-(colorBox.height - 2 | 0) || -1);
+    const height = (typeof colorBox.height == "number" ? colorBox.height : parseInt(colorBox.height));
+    colorBox.scroll(-(height - 2 | 0) || -1);
     screen.render();
 });
 colorBox.key("pagedown", () => {
-    colorBox.scroll(colorBox.height - 2 | 0 || 1 );
+    const height = (typeof colorBox.height == "number" ? colorBox.height : parseInt(colorBox.height));
+    colorBox.scroll(height - 2 | 0 || 1 );
     screen.render();
 });
 for (let i = 0; i < 256; i++) {

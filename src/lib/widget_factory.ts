@@ -126,10 +126,12 @@ export class WidgetFactory {
         box.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
         box.setIndex(100);
         box.key("pageup", () => {
-            box.scroll(-(box.height / 2 | 0) || -1);
+            const height = (typeof box.height == "number" ? box.height : parseInt(box.height));
+            box.scroll(-(height / 2 | 0) || -1);
         });
         box.key("pagedown", () => {
-            box.scroll(box.height / 2 | 0 || 1 );
+            const height = (typeof box.height == "number" ? box.height : parseInt(box.height));
+            box.scroll(height / 2 | 0 || 1 );
         });
         box.key("escape", () => {
             box.destroy();

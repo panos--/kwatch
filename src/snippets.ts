@@ -20,56 +20,56 @@ const screen = blessed.screen({
     ignoreDockContrast: true
 });
 
-const term = blessed.terminal({
-    parent: screen,
-    label: "Terminal",
-    shell: "kubectl",
-    args: ["-n", "system", "exec", "-it", "exim-smarthost-0", "-c", "exim-smarthost", "--", "bash", "-il"],
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    mouse: true,
-    keys: true,
-    border: "line",
-    scrollbar: {
-        ch: " ",
-        track: {
-            bg: AppDefaults.COLOR_SCROLLBAR_BG
-        },
-        style: {
-            inverse: true
-        }
-    },
-    style: {
-        item: {
-            hover: {
-                bg: "blue",
-                fg: "white",
-            }
-        },
-        selected: {
-            bg: "blue",
-            fg: "white",
-            bold: true
-        },
-    },
-});
+// const term = blessed.terminal({
+//     parent: screen,
+//     label: "Terminal",
+//     shell: "kubectl",
+//     args: ["-n", "system", "exec", "-it", "exim-smarthost-0", "-c", "exim-smarthost", "--", "bash", "-il"],
+//     top: 0,
+//     left: 0,
+//     width: "100%",
+//     height: "100%",
+//     mouse: true,
+//     keys: true,
+//     border: "line",
+//     scrollbar: {
+//         ch: " ",
+//         track: {
+//             bg: AppDefaults.COLOR_SCROLLBAR_BG
+//         },
+//         style: {
+//             inverse: true
+//         }
+//     },
+//     style: {
+//         item: {
+//             hover: {
+//                 bg: "blue",
+//                 fg: "white",
+//             }
+//         },
+//         selected: {
+//             bg: "blue",
+//             fg: "white",
+//             bold: true
+//         },
+//     },
+// });
 
-term.on("exit", () => {
-    // console.log("exited");
-    term.write("Finished. Enter to close.");
-    term.key("enter", () => {
-        term.kill();
-        screen.destroy();
-        process.exit(0);
-    });
-});
+// term.on("exit", () => {
+//     // console.log("exited");
+//     term.write("Finished. Enter to close.");
+//     term.key("enter", () => {
+//         term.kill();
+//         screen.destroy();
+//         process.exit(0);
+//     });
+// });
 
-screen.key("C-q", function() {
-    term.kill();
-    return screen.destroy();
-});
+// screen.key("C-q", function() {
+//     term.kill();
+//     return screen.destroy();
+// });
 
-term.focus();
-screen.render();
+// term.focus();
+// screen.render();

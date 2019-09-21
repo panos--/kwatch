@@ -1,6 +1,6 @@
 {
   "name": "kwatch",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Kubernetes Terminal UI",
   "bin": {
     "kwatch": "./dist/main.js"

@@ -24,9 +24,9 @@ export class DumpSecretsAction implements Action {
             // });
             // TODO: Replace this quick hack with a proper implementation avoiding the use of Screen.exec()
             // See BlessedUtils.runOffScreen().
-            process.env.KUI_SECRET_DUMP = `\nDump of secret ${namespace.metadata.name}/${resource}:\n\n${decodedSecret}`;
-            BlessedUtils.executeCommandWait(ctx.screen, "sh", ["-c", "echo \"$KUI_SECRET_DUMP\""], (err, success) => {
-                process.env.KUI_SECRET_DUMP = "";
+            process.env.KWATCH_SECRET_DUMP = `\nDump of secret ${namespace.metadata.name}/${resource}:\n\n${decodedSecret}`;
+            BlessedUtils.executeCommandWait(ctx.screen, "sh", ["-c", "echo \"$KWATCH_SECRET_DUMP\""], (err, success) => {
+                process.env.KWATCH_SECRET_DUMP = "";
                 if (err) {
                     console.log(err);
                 }

@@ -12,6 +12,14 @@ export interface State {
     refreshInterval: number;
 }
 
+export class AppState implements State {
+    public namespace: V1Namespace = null;
+    public namespaces: V1Namespace[] = [];
+    public apiResource: APIResource = null;
+    public apiResources: APIResource[] = [];
+    public refreshInterval: number = -1;
+}
+
 export class AppContext {
     public kubeConfig: KubeConfig;
     public client: K8sClient;

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import yargs from "yargs";
 import * as fs from "fs";
 import * as path from "path";
@@ -9,7 +11,7 @@ import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
 import { WidgetFactory } from "./lib/widget_factory";
 import { TopBarWidget } from "./lib/widgets/top_bar_widget";
 import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
-import { AppContext } from "./lib/app_context";
+import { AppContext, AppState } from "./lib/app_context";
 import { LightColorScheme, DarkColorScheme, ColorScheme } from "./lib/color_scheme";
 
 class App {
@@ -23,7 +25,7 @@ class App {
 
     private constructor(ctx: AppContext) {
         this.ctx = ctx;
-        this.stateFile = process.env.XDG_CONFIG_HOME || (process.env.HOME + "/.config") + "/kui/state.json";
+        this.stateFile = process.env.XDG_CONFIG_HOME || (process.env.HOME + "/.config") + "/kwatch/state.json";
     }
 
     private saveAppState() {
@@ -99,9 +101,9 @@ class App {
     private main() {
         const self = this;
 
-        let logDir = (process.env.XDG_CACHE_HOME || process.env.HOME + "/.cache") + "/kui";
+        let logDir = (process.env.XDG_CACHE_HOME || process.env.HOME + "/.cache") + "/kwatch";
         fs.mkdirSync(logDir, {recursive: true, mode: 0o750});
-        let logFile = logDir + "/kui.log";
+        let logFile = logDir + "/kwatch.log";
 
         this.ctx.screen = blessed.screen({
             smartCSR: true,
@@ -114,7 +116,7 @@ class App {
             this.ctx.screen.log(`Could not load config: ${e.toString()}`);
         }
 
-        this.ctx.screen.title = "KUI";
+        this.ctx.screen.title = "kwatch";
 
         var box = blessed.box({
             parent: this.ctx.screen,
@@ -361,6 +363,7 @@ class App {
         }
 
         const ctx = new AppContext();
+        ctx.state = new AppState();
         ctx.kubeConfig = new k8s.KubeConfig();
         ctx.kubeConfig.loadFromDefault();
         ctx.client = new k8sClient.K8sClient(ctx.kubeConfig);

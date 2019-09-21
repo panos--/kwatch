@@ -23,7 +23,7 @@
   },
   "files": [ "dist/**/*" ],
   "author": "Thomas Weiß <panos@unbunt.org>",
-  "license": "GPL-3.0-or-later",
+  "license": "Apache-2.0",
   "dependencies": {
     "async": "^3.1.0",
     "blessed": "^0.1.81",

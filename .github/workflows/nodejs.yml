@@ -20,6 +20,20 @@ jobs:
     - name: npm install and build
       run: |
         npm ci
-        npm run build --if-present
+        npm run build
+    - name: pkg binaries
+      run: |
+        node_version="node${CI_NODE_VERSION%.*}"
+        out=out/"$node_version"
+        mkdir -p "$out" && cd "$out"
+        npx pkg --targets="$node_version"-linux-x64,"$node_version"-macos-x64 --output=out/"$node_version"/kwatch dist/main.js
       env:
         CI: true
+        CI_NODE_VERSION: ${{ matrix.node-version }}
+    - name: semantic release
+      if: matrix.node-version == '10.x'
+      run: |
+        npx semantic-release@15
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

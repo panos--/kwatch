@@ -19,9 +19,33 @@
     "debug": "npm run build && npm run watch-debug",
     "serve-debug": "nodemon --inspect dist/main.js",
     "watch-debug": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"cyan.bold,green.bold\" \"npm run watch-ts\" \"npm run serve-debug\"",
-    "pkg": "./node_modules/.bin/pkg --target node10-linux-x64 dist/main.js"
+    "pkg": "./node_modules/.bin/pkg --target node10-linux-x64 dist/main.js",
+    "semantic-release": "semantic-release"
   },
-  "files": [ "dist/**/*" ],
+  "files": [
+    "dist/**/*"
+  ],
+  "release": {
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            {
+              "path": "out/node10/kwatch-linux.tar.gz",
+              "label": "kwatch-${nextRelease.version}-linux.tar.gz"
+            },
+            {
+              "path": "out/node10/kwatch-macos.tar.gz",
+              "label": "kwatch-${nextRelease.version}-macos.tar.gz"
+            }
+          ]
+        }
+      ]
+    ]
+  },
   "author": "Thomas Weiß <panos@unbunt.org>",
   "license": "Apache-2.0",
   "dependencies": {
@@ -79,6 +103,11 @@
     "supertest": "^4.0.2",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
-    "typescript": "^3.6.2"
+    "typescript": "^3.6.2",
+    "semantic-release": "^15.13.24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/panos--/kwatch.git"
   }
 }

@@ -25,8 +25,8 @@ jobs:
       run: |
         node_version="node${CI_NODE_VERSION%.*}"
         out=out/"$node_version"
-        mkdir -p "$out" && cd "$out"
-        npx pkg --targets="$node_version"-linux-x64,"$node_version"-macos-x64 --output=out/"$node_version"/kwatch dist/main.js
+        mkdir -p "$out"
+        npx pkg --targets="$node_version"-linux-x64,"$node_version"-macos-x64 --output="$out"/kwatch dist/main.js
       env:
         CI: true
         CI_NODE_VERSION: ${{ matrix.node-version }}

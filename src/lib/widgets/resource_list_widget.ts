@@ -1,8 +1,16 @@
 import * as blessed from "blessed";
+import escapeStringRegexp from "escape-string-regexp";
 import { APIResource } from "../client";
 import { ResourceActionMenu } from "./resource_action_menu";
 import { V1Namespace } from "@kubernetes/client-node";
 import { AppContext } from "../app_context";
+import { TypeaheadWidget } from "./typeahead_widget";
+import { PayloadListWidget } from "./payload_list_widget";
+
+interface TypedResource {
+    type: APIResource;
+    name: string;
+}
 
 export class ResourceListWidget {
     private static readonly DEFAULT_INTERVAL = 3;
@@ -14,9 +22,6 @@ export class ResourceListWidget {
     private interval = ResourceListWidget.DEFAULT_INTERVAL;
     private intervals = [10, 5, 2, 1, 0.5];
 
-    // the currently selected list entry
-    private activeResourceIndex = 0;
-
     // the parameters for which the list currently shows data
     private currentNamespace: V1Namespace = null;
     private currentAPIResource: APIResource = null;
@@ -24,7 +29,7 @@ export class ResourceListWidget {
 
     private timeout: NodeJS.Timeout = null
 
-    private resourceList: blessed.Widgets.ListElement;
+    private resourceList: PayloadListWidget<TypedResource>;
     private actionMenu: ResourceActionMenu;
 
     public constructor(ctx: AppContext) {
@@ -38,7 +43,7 @@ export class ResourceListWidget {
             || this.interval < 0 || this.interval >= this.intervals.length) {
             this.interval = ResourceListWidget.DEFAULT_INTERVAL;
         }
-        this.resourceList = blessed.list({
+        this.resourceList = new PayloadListWidget<TypedResource>({
             top: 0,
             left: 0,
             width: "100%",
@@ -80,78 +85,126 @@ export class ResourceListWidget {
         });
         this.resourceList.key("pageup", () => {
             // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
-            let height = this.resourceList.height;
-            height = (typeof height == "number" ? height : parseInt(height));
-            let offset = -(height / 2 | 0) || -1;
-            this.resourceList.select(this.activeResourceIndex + offset);
-            this.resourceList.scrollTo(this.activeResourceIndex + offset);
+            let offset = -(this.resourceList.height / 2 | 0) || -1;
+            this.resourceList.select(this.resourceList.getSelectedIndex() + offset);
+            this.resourceList.scrollTo(this.resourceList.getSelectedIndex() + offset);
         });
         this.resourceList.key("pagedown", () => {
             // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
-            let height = this.resourceList.height;
-            height = (typeof height == "number" ? height : parseInt(height));
-            let offset = (height / 2 | 0) || -1;
-            this.resourceList.select(this.activeResourceIndex + offset);
-            this.resourceList.scrollTo(this.activeResourceIndex + offset);
+            let offset = (this.resourceList.height / 2 | 0) || -1;
+            this.resourceList.select(this.resourceList.getSelectedIndex() + offset);
+            this.resourceList.scrollTo(this.resourceList.getSelectedIndex() + offset);
         });
-        this.resourceList.on("select item", (item, index) => {
-            this.activeResourceIndex = index;
-        });
-        this.resourceList.on("select", (item) => {
-            let line = item.getText();
-            if (line.trim().length == 0) {
-                return;
-            }
-            let parts = line.split(/\s+/, 2);
-            if (parts.length == 0) {
-                return;
-            }
+        this.resourceList.key("/", () => {
+            this.ctx.screen.log("pressed /");
+            this.freeze();
+            const typeahead = new TypeaheadWidget(this.ctx, {
+                parent: this.ctx.screen,
+            });
+            typeahead.on("search", (search, options, ret) => {
+                let lineIndex = this.search(search, options);
 
-            let maybePrefixedResource = parts[0];
-            if (maybePrefixedResource == maybePrefixedResource.toLocaleUpperCase()) {
-                // not a resource but a resource table header
-                return;
-            }
-
-            let apiResource;
-            let resource;
-            let resParts = maybePrefixedResource.split(/\//, 2);
-            if (resParts.length == 0) {
-                // cannot happen
-                return;
-            }
-            else if (resParts.length == 1) {
-                apiResource = this.currentAPIResource;
-                resource = resParts[0];
-            }
-            else {
-                let apiResourceName = resParts[0];
-                apiResource = this.ctx.state.apiResources.find((apiResource) => {
-                    if (apiResource.resource.name == apiResourceName) {
-                        return true;
-                    }
-                });
-                if (apiResource === undefined) {
+                if (lineIndex == -1) {
+                    ret.found = false;
                     return;
                 }
 
-                resource = resParts[1];
+                this.resourceList.select(lineIndex);
+
+                ret.found = true;
+            });
+        });
+        this.resourceList.on("select", (item) => {
+            let resource = this.parseResourceFromLine(item.getText());
+            if (!resource) {
+                return;
             }
 
-            if (this.currentNamespace && apiResource) {
-                this.showActionMenu(this.currentNamespace, apiResource, resource);
+            if (this.currentNamespace && resource.type) {
+                this.showActionMenu(this.currentNamespace, resource.type, resource.name);
             }
         });
 
-        this.actionMenu = new ResourceActionMenu(this.ctx, this.resourceList);
+        this.actionMenu = new ResourceActionMenu(this.ctx, this.ctx.screen);
         this.actionMenu.onAfterClose(() => { this.unfreeze(); });
 
         this.run();
     }
 
+    private looseMatch(string: string, search: string): boolean {
+        const pattern = search
+            .split("")
+            .filter(value => { return value.length > 0; })
+            .map(value => escapeStringRegexp(value))
+            .join(".*");
+        const regex = new RegExp(pattern);
+        return regex.test(string);
+    }
+
+    private search(search: string, options: { forward: boolean; next: boolean }): number {
+        const values = this.resourceList.values;
+        const offset = options.next ? 1 : 0;
+        for (let i = this.resourceList.getSelectedIndex() + offset; i < values.length; i++) {
+            const value = values[i];
+            if (!value.value) {
+                continue;
+            }
+            if (this.looseMatch(value.value.name, search)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public parseResourceFromLine(line: string): TypedResource|null {
+        if (line.trim().length == 0) {
+            return null;
+        }
+        let parts = line.split(/\s+/, 2);
+        if (parts.length == 0) {
+            return null;
+        }
+
+        let maybePrefixedResource = parts[0];
+        if (maybePrefixedResource == maybePrefixedResource.toLocaleUpperCase()) {
+            // not a resource but a resource table header
+            return null;
+        }
+
+        let apiResource;
+        let resource;
+        let resParts = maybePrefixedResource.split(/\//, 2);
+        if (resParts.length == 0) {
+            // cannot happen
+            return null;
+        }
+        else if (resParts.length == 1) {
+            apiResource = this.currentAPIResource;
+            resource = resParts[0];
+        }
+        else {
+            let apiResourceName = resParts[0];
+            apiResource = this.ctx.state.apiResources.find((apiResource) => {
+                if (apiResource.resource.name == apiResourceName) {
+                    return true;
+                }
+            });
+            if (apiResource === undefined) {
+                return null;
+            }
+
+            resource = resParts[1];
+        }
+
+        return {
+            type: apiResource,
+            name: resource,
+        };
+    }
+
     public appendTo(box: blessed.Widgets.BoxElement) {
-        box.append(this.resourceList);
-        this.ctx.screen = this.resourceList.screen;
+        box.append(this.resourceList.node);
+        this.ctx.screen = this.resourceList.node.screen;
     }
 
     private render() {
@@ -217,25 +270,32 @@ export class ResourceListWidget {
                 return;
             }
 
-            let activeResourceIndex = this.activeResourceIndex;
+            const selectedIndex = this.resourceList.getSelectedIndex();
 
             this.currentNamespace = namespace;
             this.currentAPIResource = apiResource;
             this.currentTime = time;
 
             this.resourceList.setLabel(label);
-            this.resourceList.clearItems();
+            const entries = [];
             if (error) {
-                this.resourceList.addItem(error.name);
-                this.resourceList.addItem(error.message);
+                entries.push({
+                    label: `${error.name}: ${error.message}`,
+                    value: null,
+                });
             }
             else {
                 for (let line of lines) {
-                    this.resourceList.addItem(line);
+                    const resource = this.parseResourceFromLine(line);
+                    entries.push({
+                        label: line,
+                        value: resource,
+                    });
                 }
             }
-            this.resourceList.select(activeResourceIndex);
-            this.resourceList.scrollTo(activeResourceIndex);
+            this.resourceList.values = entries;
+            this.resourceList.select(selectedIndex);
+            this.resourceList.scrollTo(selectedIndex);
 
             this.render();
         });

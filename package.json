@@ -56,6 +56,7 @@
     "compression": "^1.7.4",
     "dotenv": "^8.0.0",
     "errorhandler": "^1.5.1",
+    "escape-string-regexp": "^2.0.0",
     "fbgraph": "^1.4.4",
     "js-yaml": "^3.13.1",
     "kubernetes-client": "^8.3.4",
@@ -79,6 +80,7 @@
     "@types/compression": "^0.0.36",
     "@types/dotenv": "^6.1.1",
     "@types/errorhandler": "^0.0.32",
+    "@types/escape-string-regexp": "^2.0.1",
     "@types/jest": "^24.0.15",
     "@types/js-yaml": "^3.12.1",
     "@types/lodash": "^4.14.138",
@@ -100,12 +102,12 @@
     "jest": "^24.8.0",
     "nodemon": "^1.19.1",
     "pkg": "^4.4.0",
+    "semantic-release": "^15.13.24",
     "shelljs": "^0.8.3",
     "supertest": "^4.0.2",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
-    "typescript": "^3.6.2",
-    "semantic-release": "^15.13.24"
+    "typescript": "^3.6.2"
   },
   "repository": {
     "type": "git",

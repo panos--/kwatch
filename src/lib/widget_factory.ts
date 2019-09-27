@@ -1,6 +1,7 @@
 import * as blessed from "blessed";
 import _ from "lodash";
 import { ColorScheme } from "./color_scheme";
+import { List } from "./widgets/blessed/list";
 
 interface PromptOptions extends blessed.Widgets.PromptOptions {
     parent: blessed.Widgets.Node;
@@ -148,7 +149,7 @@ export class WidgetFactory {
         }
         const lengths = values.map(value => { return value.length; });
         let maxLength = Math.max.apply(null, lengths);
-        const list = blessed.list(_.merge({
+        const list = new List(_.merge({
             label: label,
             top: "center",
             left: "center",

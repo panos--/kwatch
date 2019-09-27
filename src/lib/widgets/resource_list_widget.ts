@@ -1,11 +1,11 @@
 import * as blessed from "blessed";
-import escapeStringRegexp from "escape-string-regexp";
 import { APIResource } from "../client";
 import { ResourceActionMenu } from "./resource_action_menu";
 import { V1Namespace } from "@kubernetes/client-node";
 import { AppContext } from "../app_context";
 import { TypeaheadWidget } from "./typeahead_widget";
 import { PayloadListWidget } from "./payload_list_widget";
+import { LooseMatcher } from "../search/loose_matcher";
 
 interface TypedResource {
     type: APIResource;
@@ -113,6 +113,9 @@ export class ResourceListWidget {
 
                 ret.found = true;
             });
+            typeahead.on("destroy", () => {
+                this.unfreeze();
+            });
         });
         this.resourceList.on("select", (item) => {
             let resource = this.parseResourceFromLine(item.getText());
@@ -131,25 +134,22 @@ export class ResourceListWidget {
         this.run();
     }
 
-    private looseMatch(string: string, search: string): boolean {
-        const pattern = search
-            .split("")
-            .filter(value => { return value.length > 0; })
-            .map(value => escapeStringRegexp(value))
-            .join(".*");
-        const regex = new RegExp(pattern);
-        return regex.test(string);
-    }
-
     private search(search: string, options: { forward: boolean; next: boolean }): number {
+        const matcher = new LooseMatcher(search);
+
         const values = this.resourceList.values;
-        const offset = options.next ? 1 : 0;
-        for (let i = this.resourceList.getSelectedIndex() + offset; i < values.length; i++) {
+        const forward = options.forward;
+        const offset = options.next ? (forward ? 1 : -1) : 0;
+        for (
+            let i = this.resourceList.getSelectedIndex() + offset;
+            forward ? i < values.length : i >= 0;
+            i += forward ? 1 : -1
+        ) {
             const value = values[i];
             if (!value.value) {
                 continue;
             }
-            if (this.looseMatch(value.value.name, search)) {
+            if (matcher.test(value.value.name)) {
                 return i;
             }
         }

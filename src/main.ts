@@ -333,6 +333,13 @@ class App {
 
                 ENTER ............. Show action menu for selected
                                     resource
+                ? ................. Activate typeahead find
+
+            Resource list / Typeahead find
+
+                ENTER, DOWN ....... Find next
+                UP ................ Find previous
+                ESCAPE ............ Close typeahead find
 
             API resource list
 

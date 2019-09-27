@@ -6,13 +6,17 @@ export interface LiveInputOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
 }
 
+export interface LiveInputWidget {
+    _listener: (ch: string, key: any) => {};
+    _origListener: (ch: string, key: any) => {};
+}
+
 export class LiveInputWidget extends blessed.widget.Textbox {
     private ctx: AppContext;
     private liveValue: string = "";
 
     public constructor(ctx: AppContext, options: LiveInputOptions) {
         super(_.merge({
-            // parent: ctx.screen,
             top: 0,
             left: 0,
             width: "100%-2",
@@ -21,9 +25,34 @@ export class LiveInputWidget extends blessed.widget.Textbox {
                 bg: "red"
             }
         }, options));
-        // this.setIndex(1100);
         this.ctx = ctx;
         this.init();
+    }
+
+    public get closeOnEnter(): boolean {
+        return !LiveInputWidget.prototype._origListener;
+    }
+
+    public set closeOnEnter(closeOnEnter: boolean) {
+        if (closeOnEnter) {
+            if (this.closeOnEnter) {
+                return;
+            }
+            LiveInputWidget.prototype._listener = LiveInputWidget.prototype._origListener;
+            LiveInputWidget.prototype._origListener = null;
+        }
+        else {
+            if (!this.closeOnEnter) {
+                return;
+            }
+            LiveInputWidget.prototype._origListener = LiveInputWidget.prototype._listener;
+            LiveInputWidget.prototype._listener = function(ch, key) {
+                if (key.name === "enter") {
+                    return;
+                }
+                return this._origListener(ch, key);
+            };
+        }
     }
 
     private init() {
@@ -55,7 +84,7 @@ export class LiveInputWidget extends blessed.widget.Textbox {
                 this.emit("change", this.liveValue);
             }
         } else if (ch) {
-            if (!/^[\t\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]$/.test(ch)) {
+            if (!/^[\r\t\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]$/.test(ch)) {
                 this.liveValue += ch;
                 this.emit("change", this.liveValue);
             }

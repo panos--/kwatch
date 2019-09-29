@@ -16,12 +16,13 @@ import { LightColorScheme, DarkColorScheme, ColorScheme } from "./lib/color_sche
 import { OptionList } from "./lib/widgets/select_list_widget";
 import { APIResource } from "./lib/client";
 import { V1Namespace } from "@kubernetes/client-node";
+import { APIListWidget } from "./lib/widgets/api_list_widget";
 
 class App {
     private ctx: AppContext;
 
     private topBar: TopBarWidget;
-    private apiList: DrilldownWidget<APIResource>;
+    private apiList: APIListWidget;
     private resourceListWidget: ResourceListWidget;
 
     private stateFile: string;
@@ -67,77 +68,11 @@ class App {
         });
     }
 
-    private async updateApiList(doneCb: () => void) {
-        this.ctx.client.getListableAPIResources((error, resources) => {
-            if (error) {
-                console.log(error);
-                return;
-            }
-
-            // update state
-            this.ctx.state.apiResources = resources;
-            if (this.ctx.state.apiResource !== null) {
-                // make sure object identity is given for apiResource object in state
-                // and in apiList
-                const r = resources.find(r => {
-                    return this.ctx.state.apiResource.getFullName() == r.getFullName();
-                });
-                if (r !== undefined) {
-                    this.ctx.state.apiResource = r;
-                }
-            }
-
-            const categorizedResources = this.ctx.client.categorizeResources(resources);
-            const categories = [
-                "Cluster",
-                "Workloads",
-                "Config",
-                "Network",
-                "Storage",
-                "Security",
-                "Custom",
-                "Other",
-            ];
-            for (let category of Object.keys(categorizedResources)) {
-                if (!categories.includes(category)) {
-                    categories.push(category);
-                }
-            }
-            const listOptions = new OptionList<APIResource>();
-            for (let category of categories) {
-                const options = [];
-                for (let resource of categorizedResources[category]) {
-                    options.push({
-                        label: resource.getLongName(),
-                        value: resource,
-                    });
-                }
-                listOptions.addGroup({
-                    label: category,
-                    options: options,
-                });
-            }
-            this.apiList.setValues(listOptions);
-
-            if (this.ctx.state.apiResource === null) {
-                this.ctx.state.apiResource = this.apiList.getSelectedValue();
-            }
-            else {
-                this.apiList.selectValue(this.ctx.state.apiResource);
-            }
-            doneCb();
-        }).catch(e => {
-            console.log(e);
-        });
-    }
-
     private updateContents() {
         this.updateNamespaceList(() => {
             this.ctx.screen.render();
         });
-        this.updateApiList(() => {
-            this.ctx.screen.render();
-        });
+        this.apiList.updateApiList();
     }
 
     private main() {
@@ -251,15 +186,7 @@ class App {
             focusable: false,
         });
 
-        this.apiList = new DrilldownWidget(this.ctx, new OptionList(), {
-            label: "API Resources",
-            parent: leftPane,
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%-1",
-            closeOnSubmit: false,
-        });
+        this.apiList = new APIListWidget(this.ctx, leftPane);
         this.apiList.onSelect((apiResource: APIResource) => {
             this.ctx.state.apiResource = apiResource;
             this.resourceListWidget.refresh();

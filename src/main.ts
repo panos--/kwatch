@@ -10,13 +10,11 @@ import * as k8sClient from "./lib/client";
 import { ResourceListWidget } from "./lib/widgets/resource_list_widget";
 import { WidgetFactory } from "./lib/widget_factory";
 import { TopBarWidget } from "./lib/widgets/top_bar_widget";
-import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
 import { AppContext, AppState } from "./lib/app_context";
 import { LightColorScheme, DarkColorScheme, ColorScheme } from "./lib/color_scheme";
-import { OptionList } from "./lib/widgets/select_list_widget";
 import { APIResource } from "./lib/client";
-import { V1Namespace } from "@kubernetes/client-node";
 import { APIListWidget } from "./lib/widgets/api_list_widget";
+import { NamespaceListWidget } from "./lib/widgets/namespace_list_widget";
 
 class App {
     private ctx: AppContext;
@@ -76,8 +74,6 @@ class App {
     }
 
     private main() {
-        const self = this;
-
         let logDir = (process.env.XDG_CACHE_HOME || process.env.HOME + "/.cache") + "/kwatch";
         fs.mkdirSync(logDir, {recursive: true, mode: 0o750});
         let logFile = logDir + "/kwatch.log";
@@ -152,28 +148,16 @@ class App {
             actionCallback: () => {
                 this.resourceListWidget.freeze();
                 this.ctx.screen.saveFocus();
-                const optionList: OptionList<V1Namespace> = new OptionList();
-                for (let namespace of this.ctx.state.namespaces) {
-                    optionList.addOption({ label: namespace.metadata.name, value: namespace });
-                }
-                const maxLength = Math.max.apply(null, this.ctx.state.namespaces.map(n => n.metadata.name.length));
-                const screenWidth: any = this.ctx.screen.width;
-                const list = new DrilldownWidget<V1Namespace>(this.ctx, optionList, {
-                    parent: this.ctx.screen,
-                    label: "Choose Namespace",
-                    width: Math.max(20, Math.min(maxLength + 3, screenWidth - 10)),
-                });
-                list.onSelect((value) => {
-                    this.ctx.state.namespace = value;
+                const namespaceListWidget = new NamespaceListWidget(this.ctx);
+                namespaceListWidget.onSelect(() => {
                     this.topBar.update();
                     this.resourceListWidget.refresh();
                 });
-                list.onBlur(() => {
-                    list.destroy();
+                namespaceListWidget.onClose(() => {
                     this.ctx.screen.restoreFocus();
                     this.resourceListWidget.unfreeze();
                 });
-                list.focus();
+                namespaceListWidget.focus();
             }
         }]);
 
@@ -218,7 +202,7 @@ class App {
         this.resourceListWidget.appendTo(mainPane);
 
         this.ctx.screen.key(["C-r"], () => {
-            self.updateContents();
+            this.updateContents();
         });
 
         this.ctx.screen.key(["C-l"], () => {

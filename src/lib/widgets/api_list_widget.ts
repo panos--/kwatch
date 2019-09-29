@@ -256,7 +256,7 @@ export class APIListWidget {
     }
 
     public onSelect(callback: (value: APIResource) => void) {
-        this.drilldown.onSelect(callback);
+        this.drilldown.onSubmit(callback);
     }
 
     public key(name: string | string[], listener: (ch: any, key: Widgets.Events.IKeyEventArg) => void) {

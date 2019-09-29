@@ -3,6 +3,7 @@ import _ from "lodash";
 import { AppContext } from "../app_context";
 import { SelectListWidget, OptionItem, OptionList } from "./select_list_widget";
 import { LiveInputWidget } from "./live_input_widget";
+import { EventEmitter } from "events";
 
 interface DrilldownOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
@@ -17,8 +18,7 @@ export class DrilldownWidget<T> {
     private values: OptionList<T>;
     private list: SelectListWidget<T>;
     private closeOnSubmit: boolean = true;
-
-    private onSelectCallback: (value: T) => void;
+    private eventEmitter = new EventEmitter();
 
     // private search = "";
     private filteredValues: OptionList<T>;
@@ -124,17 +124,15 @@ export class DrilldownWidget<T> {
             this.screen.render();
             return;
         }
-        if (this.onSelectCallback) {
-            this.onSelectCallback.call(null, this.list.getSelectedValue());
-        }
+        this.eventEmitter.emit("select", value);
         if (this.closeOnSubmit) {
             this.destroy();
             this.screen.render();
         }
     }
 
-    public onSelect(callback: (value: T) => void) {
-        this.onSelectCallback = callback;
+    public onSubmit(callback: (value: T) => void) {
+        this.eventEmitter.on("select", callback);
     }
 
     public onBlur(callback: () => void) {

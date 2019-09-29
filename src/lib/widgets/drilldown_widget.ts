@@ -7,7 +7,6 @@ import { EventEmitter } from "events";
 
 interface DrilldownOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
-    closeOnSubmit?: boolean;
 }
 
 export class DrilldownWidget<T> {
@@ -18,7 +17,6 @@ export class DrilldownWidget<T> {
     private values: OptionList<T>;
     private filteredValues: OptionList<T>;
     private list: SelectListWidget<T>;
-    private closeOnSubmit: boolean = true;
     private eventEmitter = new EventEmitter();
 
     public constructor(ctx: AppContext, values: OptionList<T>, options: DrilldownOptions) {
@@ -31,11 +29,6 @@ export class DrilldownWidget<T> {
     }
 
     public init(options: DrilldownOptions) {
-        let closeOnSubmit = options.closeOnSubmit;
-        if (closeOnSubmit !== undefined && closeOnSubmit !== null) {
-            this.closeOnSubmit = !!closeOnSubmit;
-        }
-
         this.box = blessed.box(_.merge({
             top: "center",
             left: "center",
@@ -55,7 +48,6 @@ export class DrilldownWidget<T> {
             height: 1,
             width: "100%-2",
         });
-        this.input.closeOnSubmit = false;
         this.input.style.bg = this.ctx.colorScheme.COLOR_INPUT_BG;
         this.input.style.fg = this.ctx.colorScheme.COLOR_INPUT_FG;
         this.input.style.bold = true;
@@ -139,10 +131,6 @@ export class DrilldownWidget<T> {
             return;
         }
         this.eventEmitter.emit("select", value);
-        if (this.closeOnSubmit) {
-            this.destroy();
-            this.screen.render();
-        }
     }
 
     public onSubmit(callback: (value: T) => void) {

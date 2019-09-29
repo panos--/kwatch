@@ -30,37 +30,22 @@ export class LiveInputWidget extends blessed.widget.Textbox {
         this.init();
     }
 
-    public get closeOnSubmit(): boolean {
-        return !LiveInputWidget.prototype._origListener;
-    }
-
-    public set closeOnSubmit(closeOnSubmit: boolean) {
-        if (closeOnSubmit) {
-            if (this.closeOnSubmit) {
-                return;
-            }
-            this._listener = this._origListener;
-            this._origListener = null;
-        }
-        else {
-            if (!this.closeOnSubmit) {
-                return;
-            }
-            // Crude hack to prevent Textbox from destroying itself when receiving
-            // "enter" key
-            const self = this;
-            this._origListener = this._listener;
-            this._listener = function (ch, key) {
-                if (key.name === "enter") {
-                    self.emit("submit", self.liveValue);
-                    return;
-                }
-                return this._origListener(ch, key); // must be called on "this", not "self"!
-            };
-        }
-    }
-
     private init() {
+        this._origListener = this._listener;
+        const self = this;
+        this._listener = function (ch, key) {
+            // prevent textbox from terminating itself on receiving "enter"
+            if (key.name === "enter") {
+                self.emit("submit", self.liveValue);
+                return;
+            }
+            // prevent textbox from terminating itself on receiving "escape"
+            if (key.name === "escape") {
+                return;
+            }
+            return this._origListener(ch, key); // must be called on "this", not "self"!
+        };
+
         this.on("keypress", this.inputKeypress.bind(this));
         this.key(["C-backspace", "M-backspace"], () => {
             this.liveValue = "";

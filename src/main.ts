@@ -295,7 +295,7 @@ class App {
 
             API resource list
 
-                ESCAPE ............ Switch focus to resource list
+                TAB ............... Switch focus to resource list
                 UP, DOWN,
                 PAGEUP, PAGEDOWN,
                 HOME, END, ........ Navigate through list

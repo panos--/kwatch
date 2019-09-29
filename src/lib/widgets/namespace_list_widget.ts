@@ -23,12 +23,14 @@ export class NamespaceListWidget {
             parent: this.ctx.screen,
             label: "Choose Namespace",
             width: Math.max(20, Math.min(maxLength + 3, screenWidth - 10)),
-            closeOnSubmit: true,
         });
         this.list.onSubmit((namespace: V1Namespace) => {
             this.ctx.state.namespace = namespace;
+            this.destroy();
+            this.ctx.screen.render();
         });
         this.list.onBlur(() => { this.destroy(); });
+        this.list.key("escape", () => { this.destroy(); });
     }
 
     public onSelect(callback: (namespace: V1Namespace) => void) {

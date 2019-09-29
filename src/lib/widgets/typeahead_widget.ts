@@ -64,7 +64,6 @@ export class TypeaheadWidget {
         this.input.key("down", searchForward);
         this.input.key("up", searchBackward);
         this.input.key("enter", searchInDirection);
-        this.input.closeOnSubmit = false;
 
         this.ctx.screen.render();
     }

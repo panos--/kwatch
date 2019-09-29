@@ -294,6 +294,9 @@ class App {
             API resource list
 
                 ESCAPE ............ Switch focus to resource list
+                UP, DOWN,
+                PAGEUP, PAGEDOWN,
+                HOME, END, ........ Navigate through list
         `.replace(/\n         /g, "\n").replace("\n", "");
         helpBox.insertBottom(helpText);
         helpBox.focus();

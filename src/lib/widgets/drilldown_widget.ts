@@ -16,12 +16,10 @@ export class DrilldownWidget<T> {
     private box: blessed.Widgets.BoxElement;
     private input: LiveInputWidget;
     private values: OptionList<T>;
+    private filteredValues: OptionList<T>;
     private list: SelectListWidget<T>;
     private closeOnSubmit: boolean = true;
     private eventEmitter = new EventEmitter();
-
-    // private search = "";
-    private filteredValues: OptionList<T>;
 
     public constructor(ctx: AppContext, values: OptionList<T>, options: DrilldownOptions) {
         this.ctx = ctx;
@@ -67,6 +65,22 @@ export class DrilldownWidget<T> {
         });
         this.input.key("down", () => {
             this.list.down(1);
+            this.screen.render();
+        });
+        this.input.key("home", () => {
+            this.list.selectIndex(0);
+            this.screen.render();
+        });
+        this.input.key("end", () => {
+            this.list.selectIndex(this.filteredValues.toArray().length - 1);
+            this.screen.render();
+        });
+        this.input.key("pagedown", () => {
+            this.list.down(Math.round(this.list.height / 2));
+            this.screen.render();
+        });
+        this.input.key("pageup", () => {
+            this.list.up(Math.round(this.list.height / 2));
             this.screen.render();
         });
         this.input.on("change", () => {

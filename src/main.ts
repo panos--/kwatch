@@ -283,7 +283,9 @@ class App {
 
                 ENTER ............. Show action menu for selected
                                     resource
-                ? ................. Activate typeahead find
+                UP, DOWN,
+                PAGEUP, PAGEDOWN .. Navigate through list
+                / ................. Activate typeahead find
 
             Resource list / Typeahead find
 

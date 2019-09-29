@@ -213,6 +213,115 @@ class APIGroupResources {
     }
 }
 
+interface ResourceCategory {
+    group: string|RegExp;
+    name: string|RegExp;
+    category: string;
+}
+
+const resourceCategories: ResourceCategory[] = [
+    {
+        group: "",
+        name: /^componentstatuses|events|namespaces|nodes$/,
+        category: "Cluster"
+    },
+    {
+        group: "apps",
+        name: "controllerrevisions",
+        category: "Cluster"
+    },
+    {
+        group: "autoscaling",
+        name: "horizontalpodautoscalers",
+        category: "Cluster"
+    },
+    {
+        group: "apiregistration.k8s.io",
+        name: "apiservices",
+        category: "Cluster"
+    },
+    {
+        group: "events.k8s.io",
+        name: "events",
+        category: "Cluster"
+    },
+    {
+        group: "scheduling.k8s.io",
+        name: "priorityclasses",
+        category: "Cluster"
+    },
+    {
+        group: "",
+        name: /^configmaps|secrets$/,
+        category: "Config"
+    },
+    {
+        group: "",
+        name: /^endpoints|services$/,
+        category: "Network"
+    },
+    {
+        group: "extensions",
+        name: /^ingresses|networkpolicies$/,
+        category: "Network"
+    },
+    {
+        group: "networking.k8s.io",
+        name:"networkpolicies",
+        category: "Network"
+    },
+    {
+        group: "",
+        name: "serviceaccounts",
+        category: "Security"
+    },
+    {
+        group: "rbac.authorization.k8s.io",
+        name: /^clusterrolebindings|clusterroles|rolebindings|roles$/,
+        category: "Security"
+    },
+    {
+        group: "",
+        name: /^persistentvolumeclaims|persistentvolumes$/,
+        category: "Storage"
+    },
+    {
+        group: "storage.k8s.io",
+        name: /^storageclasses|volumeattachments$/,
+        category: "Storage"
+    },
+    {
+        group: /^apps|extensions$/,
+        name: /^daemonsets|deployments|replicasets$/,
+        category: "Workloads"
+    },
+    {
+        group: "apps",
+        name: "statefulsets",
+        category: "Workloads"
+    },
+    {
+        group: "batch",
+        name: /^cronjobs|jobs$/,
+        category: "Workloads"
+    },
+    {
+        group: "",
+        name: "pods",
+        category: "Workloads"
+    },
+    {
+        group: /^.*\.k8s\.io|[^\.]+$/,
+        name: /.*/,
+        category: "Other"
+    },
+    {
+        group: /.*/,
+        name: /.*/,
+        category: "Custom"
+    }
+];
+
 export class K8sClient {
     private _kubeConfig: k8s.KubeConfig;
     private coreApi: CoreV1Api;
@@ -439,5 +548,58 @@ export class K8sClient {
         }
 
         return secret;
+    }
+
+    public categorizeResources(resources: APIResource[]) {
+        const groupedResources: {[group: string]: APIResource[]} = {};
+        for (let r of resources) {
+            let category = this.categorizeResource(r);
+            if (!(category in groupedResources)) {
+                groupedResources[category] = [];
+            }
+            groupedResources[category].push(r);
+
+            category = null;
+        }
+        return groupedResources;
+    }
+
+    public categorizeResource(resource: APIResource): string|null {
+        let category = null;
+        for (let matcher of resourceCategories) {
+            let groupMatched = false;
+            const resourceGroupName = resource.group ? resource.group.name : "";
+            if (typeof matcher.group == "string") {
+                if (matcher.group == resourceGroupName) {
+                    groupMatched = true;
+                }
+            }
+            else if (matcher.group.test(resourceGroupName)) {
+                groupMatched = true;
+            }
+            if (!groupMatched) {
+                continue;
+            }
+
+            let nameMatched = false;
+            if (typeof matcher.name == "string") {
+                if (matcher.name == resource.resource.name) {
+                    nameMatched = true;
+                }
+            }
+            else if (matcher.name.test(resource.resource.name)) {
+                nameMatched = true;
+            }
+            if (nameMatched) {
+                category = matcher.category;
+                break;
+            }
+        }
+
+        if (category === null) {
+            category = "Unknown";
+        }
+
+        return category;
     }
 }

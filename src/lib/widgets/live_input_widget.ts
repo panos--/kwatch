@@ -8,12 +8,13 @@ export interface LiveInputOptions extends blessed.Widgets.BoxOptions {
 
 export interface LiveInputWidget {
     _listener: (ch: string, key: any) => {};
-    _origListener: (ch: string, key: any) => {};
 }
 
 export class LiveInputWidget extends blessed.widget.Textbox {
     private ctx: AppContext;
     private liveValue: string = "";
+
+    private _origListener: (ch: string, key: any) => {} = null;
 
     public constructor(ctx: AppContext, options: LiveInputOptions) {
         super(_.merge({
@@ -29,28 +30,32 @@ export class LiveInputWidget extends blessed.widget.Textbox {
         this.init();
     }
 
-    public get closeOnEnter(): boolean {
+    public get closeOnSubmit(): boolean {
         return !LiveInputWidget.prototype._origListener;
     }
 
-    public set closeOnEnter(closeOnEnter: boolean) {
-        if (closeOnEnter) {
-            if (this.closeOnEnter) {
+    public set closeOnSubmit(closeOnSubmit: boolean) {
+        if (closeOnSubmit) {
+            if (this.closeOnSubmit) {
                 return;
             }
-            LiveInputWidget.prototype._listener = LiveInputWidget.prototype._origListener;
-            LiveInputWidget.prototype._origListener = null;
+            this._listener = this._origListener;
+            this._origListener = null;
         }
         else {
-            if (!this.closeOnEnter) {
+            if (!this.closeOnSubmit) {
                 return;
             }
-            LiveInputWidget.prototype._origListener = LiveInputWidget.prototype._listener;
-            LiveInputWidget.prototype._listener = function(ch, key) {
+            // Crude hack to prevent Textbox from destroying itself when receiving
+            // "enter" key
+            const self = this;
+            this._origListener = this._listener;
+            this._listener = function (ch, key) {
                 if (key.name === "enter") {
+                    self.emit("submit", self.liveValue);
                     return;
                 }
-                return this._origListener(ch, key);
+                return this._origListener(ch, key); // must be called on "this", not "self"!
             };
         }
     }
@@ -63,7 +68,12 @@ export class LiveInputWidget extends blessed.widget.Textbox {
             this.emit("change", this.liveValue);
             this.ctx.screen.render();
         });
-        this.readInput(() => {});
+        this.key("return", () => {
+            this.value = this.value.replace(/\r/g, "");
+        });
+        this.key("tab", () => {
+            this.value = this.value.replace(/\t/g, "");
+        });
     }
 
     private inputKeypress(ch: string, key: any) {
@@ -89,6 +99,13 @@ export class LiveInputWidget extends blessed.widget.Textbox {
                 this.emit("change", this.liveValue);
             }
         }
+    }
+
+    public setValue(value: string) {
+        if (value !== null && value !== undefined) {
+            this.liveValue = value;
+        }
+        super.setValue(value);
     }
 
     public getValue(): string {

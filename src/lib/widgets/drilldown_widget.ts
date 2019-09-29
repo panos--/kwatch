@@ -1,28 +1,29 @@
-
 import * as blessed from "blessed";
 import _ from "lodash";
 import { AppContext } from "../app_context";
+import { SelectListWidget, OptionItem, OptionList } from "./select_list_widget";
+import { LiveInputWidget } from "./live_input_widget";
 
 interface DrilldownOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
+    closeOnSubmit?: boolean;
 }
 
-export class DrilldownWidget {
+export class DrilldownWidget<T> {
     private ctx: AppContext;
     private screen: blessed.Widgets.Screen;
     private box: blessed.Widgets.BoxElement;
-    private input: blessed.Widgets.TextboxElement;
-    private values: string[];
-    private list: blessed.Widgets.ListElement;
+    private input: LiveInputWidget;
+    private values: OptionList<T>;
+    private list: SelectListWidget<T>;
+    private closeOnSubmit: boolean = true;
 
-    private onSelectCallback: (value: string, index: number) => void;
+    private onSelectCallback: (value: T) => void;
 
-    private search = "";
-    private filteredValues: string[];
-    private selectedIndex: number;
-    private selectedItem: string;
+    // private search = "";
+    private filteredValues: OptionList<T>;
 
-    public constructor(ctx: AppContext, values: string[], options: DrilldownOptions) {
+    public constructor(ctx: AppContext, values: OptionList<T>, options: DrilldownOptions) {
         this.ctx = ctx;
         this.screen = options.parent.screen;
         this.values = values;
@@ -32,6 +33,11 @@ export class DrilldownWidget {
     }
 
     public init(options: DrilldownOptions) {
+        let closeOnSubmit = options.closeOnSubmit;
+        if (closeOnSubmit !== undefined && closeOnSubmit !== null) {
+            this.closeOnSubmit = !!closeOnSubmit;
+        }
+
         this.box = blessed.box(_.merge({
             top: "center",
             left: "center",
@@ -44,19 +50,27 @@ export class DrilldownWidget {
         }, options));
         this.box.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
 
-        this.input = blessed.textbox({
+        this.input = new LiveInputWidget(this.ctx, {
             parent: this.box,
             top: 0,
             left: 0,
             height: 1,
             width: "100%-2",
         });
+        this.input.closeOnSubmit = false;
         this.input.style.bg = this.ctx.colorScheme.COLOR_INPUT_BG;
         this.input.style.fg = this.ctx.colorScheme.COLOR_INPUT_FG;
         this.input.style.bold = true;
-        this.input.on("keypress", this.inputKeypress.bind(this));
-        this.input.key(["C-backspace", "M-backspace"], () => {
-            this.searchValue = "";
+        this.input.key("up", () => {
+            this.list.up(1);
+            this.screen.render();
+        });
+        this.input.key("down", () => {
+            this.list.down(1);
+            this.screen.render();
+        });
+        this.input.on("change", () => {
+            this.update();
         });
         this.input.on("submit", () => {
             this.submit();
@@ -69,7 +83,7 @@ export class DrilldownWidget {
             this.box.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
         });
 
-        this.list = blessed.list({
+        this.list = new SelectListWidget({
             parent: this.box,
             top: 2,
             left: 0,
@@ -100,26 +114,26 @@ export class DrilldownWidget {
                 }
             }
         });
-        this.list.on("select item", (item, index) => {
-            this.selectedItem = this.filteredValues[index];
-            this.selectedIndex = index;
-        });
-        this.list.on("select", () => {
-            this.submit();
-        });
-        for (let value of this.values) {
-            this.list.addItem(value);
-        }
+        this.setValues(this.values);
     }
 
     private submit() {
-        let value = this.selectedItem;
+        const value = this.list.getSelectedValue();
+        if (value === null) {
+            this.focus();
+            this.screen.render();
+            return;
+        }
         if (this.onSelectCallback) {
-            this.onSelectCallback.call(null, value, this.values.indexOf(value));
+            this.onSelectCallback.call(null, this.list.getSelectedValue());
+        }
+        if (this.closeOnSubmit) {
+            this.destroy();
+            this.screen.render();
         }
     }
 
-    public onSelect(callback: (value: string, index: number) => void) {
+    public onSelect(callback: (value: T) => void) {
         this.onSelectCallback = callback;
     }
 
@@ -128,10 +142,8 @@ export class DrilldownWidget {
     }
 
     private reset() {
-        this.search = "";
+        // this.search = "";
         this.filteredValues = this.values;
-        this.selectedIndex = 0;
-        this.selectedItem = this.filteredValues[0];
         this.input.setValue("");
     }
 
@@ -141,97 +153,53 @@ export class DrilldownWidget {
         this.box.destroy();
     }
 
-    private inputKeypress(ch: string, key: any) {
-        if (key.name == "escape") {
-            this.screen.render();
-            return;
-        }
-
-        if (key.name == "enter") {
-            return;
-        }
-
-        if (key.name == "down") {
-            this.list.down(1);
-            this.screen.render();
-            return;
-        }
-        if (key.name == "up") {
-            this.list.up(1);
-            this.screen.render();
-            return;
-        }
-
-        // NOTE: Taken from blessed (textarea.js)
-        if (key.name === "backspace") {
-            if (this.search.length) {
-                if (this.screen.fullUnicode) {
-                    // NOTE: Would require unicode.js from blessed.js
-                    // if (unicode.isSurrogate(this.search, this.search.length - 2)) {
-                    //     // || unicode.isCombining(this.search, this.search.length - 1)) {
-                    //     this.search = this.search.slice(0, -2);
-                    // } else {
-                    this.search = this.search.slice(0, -1);
-                    // }
-                } else {
-                    this.search = this.search.slice(0, -1);
-                }
-            }
-        } else if (ch) {
-            if (!/^[\t\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]$/.test(ch)) {
-                this.search += ch;
-            }
-        }
-
-        this.update();
-    }
-
     public focus() {
         this.box.show();
         this.screen.render();
         this.input.readInput(() => {});
     }
 
-    public setValues(values: string[]) {
+    public setValues(values: OptionList<T>) {
         this.values = values;
         this.update();
     }
 
     public get searchValue() {
-        return this.search;
+        return this.input.getValue();
     }
 
     public set searchValue(searchValue: string) {
-        this.search = searchValue;
-        this.input.setValue(this.search);
+        this.input.setValue(searchValue);
         this.update();
     }
 
     private update() {
-        let prevSelectedItem = this.selectedItem;
-        this.list.clearItems();
-        this.filteredValues = this.values.filter(value => { return value.includes(this.search); });
-        for (let value of this.filteredValues) {
-            this.list.addItem(value);
-        };
-        this.selectedIndex = Math.max(0, this.filteredValues.indexOf(prevSelectedItem));
-        this.selectedItem = this.filteredValues[this.selectedIndex];
-        this.list.select(this.selectedIndex);
+        let prevSelectedItem = this.getSelectedItem();
+        const searchValue = this.input.getValue();
+        this.filteredValues = this.values.filterLabels(label => { return label.includes(searchValue); });
+        this.list.options = this.filteredValues;
+        this.select(prevSelectedItem);
+        if (this.getSelectedItem() === null) {
+            this.list.down(1);
+        }
+        this.screen.render();
     }
 
-    public select(index: number) {
-        if (index < 0 || index >= this.values.length) {
-            throw "Invalid argument";
-        }
-        let filteredIndex = this.filteredValues.indexOf(this.values[index]);
-        if (filteredIndex == -1) {
-            filteredIndex = 0;
-        }
-        this.selectedIndex = filteredIndex;
-        this.selectedItem = this.values[index];
-
-        this.list.select(this.selectedIndex);
+    public select(option: OptionItem<T>) {
+        this.list.select(option);
         this.screen.render();
+    }
+
+    public selectValue(value: T) {
+        this.list.selectValue(value);
+    }
+
+    public getSelectedValue(): T {
+        return this.list.getSelectedValue();
+    }
+
+    public getSelectedItem(): OptionItem<T> {
+        return this.list.getSelectedItem();
     }
 
     public key(name: string | string[], listener: (ch: any, key: blessed.Widgets.Events.IKeyEventArg) => void) {

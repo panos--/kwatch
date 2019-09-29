@@ -18,6 +18,23 @@ export class AppState implements State {
     public apiResource: APIResource = null;
     public apiResources: APIResource[] = [];
     public refreshInterval: number = -1;
+
+    public static unserialize(state: State) {
+        if (state.namespace !== null) {
+            let namespace = new V1Namespace();
+            Object.assign(namespace, state.namespace);
+            state.namespace = namespace;
+        }
+
+        if (state.apiResource !== null) {
+            let apiResource = new APIResource(
+                state.apiResource.resource,
+                state.apiResource.groupVersion,
+                state.apiResource.group
+            );
+            state.apiResource = apiResource;
+        }
+    }
 }
 
 export class AppContext {

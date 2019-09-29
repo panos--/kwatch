@@ -64,7 +64,7 @@ export class TypeaheadWidget {
         this.input.key("down", searchForward);
         this.input.key("up", searchBackward);
         this.input.key("enter", searchInDirection);
-        this.input.closeOnEnter = false;
+        this.input.closeOnSubmit = false;
 
         this.ctx.screen.render();
     }
@@ -84,6 +84,10 @@ export class TypeaheadWidget {
 
     public on(event: "keypress" | "search" | "destroy", listener: (...args: any) => any) {
         this.eventEmitter.on(event, listener);
+    }
+
+    public focus() {
+        this.input.readInput(() => {});
     }
 
     private destroy() {

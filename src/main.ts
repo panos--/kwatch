@@ -13,12 +13,15 @@ import { TopBarWidget } from "./lib/widgets/top_bar_widget";
 import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
 import { AppContext, AppState } from "./lib/app_context";
 import { LightColorScheme, DarkColorScheme, ColorScheme } from "./lib/color_scheme";
+import { OptionList } from "./lib/widgets/select_list_widget";
+import { APIResource } from "./lib/client";
+import { V1Namespace } from "@kubernetes/client-node";
 
 class App {
     private ctx: AppContext;
 
     private topBar: TopBarWidget;
-    private apiList: DrilldownWidget;
+    private apiList: DrilldownWidget<APIResource>;
     private resourceListWidget: ResourceListWidget;
 
     private stateFile: string;
@@ -38,6 +41,7 @@ class App {
     private loadAppState() {
         let data = fs.readFileSync(this.stateFile);
         this.ctx.state = JSON.parse(data.toString());
+        AppState.unserialize(this.ctx.state);
     }
 
     private async updateNamespaceList(doneCb: () => void) {
@@ -69,20 +73,58 @@ class App {
                 console.log(error);
                 return;
             }
+
             // update state
             this.ctx.state.apiResources = resources;
-            let index = -1;
             if (this.ctx.state.apiResource !== null) {
-                index = resources.findIndex(resource => {
-                    return resource.resource.name == this.ctx.state.apiResource.resource.name;
+                // make sure object identity is given for apiResource object in state
+                // and in apiList
+                const r = resources.find(r => {
+                    return this.ctx.state.apiResource.getFullName() == r.getFullName();
+                });
+                if (r !== undefined) {
+                    this.ctx.state.apiResource = r;
+                }
+            }
+
+            const categorizedResources = this.ctx.client.categorizeResources(resources);
+            const categories = [
+                "Cluster",
+                "Workloads",
+                "Config",
+                "Network",
+                "Storage",
+                "Security",
+                "Custom",
+                "Other",
+            ];
+            for (let category of Object.keys(categorizedResources)) {
+                if (!categories.includes(category)) {
+                    categories.push(category);
+                }
+            }
+            const listOptions = new OptionList<APIResource>();
+            for (let category of categories) {
+                const options = [];
+                for (let resource of categorizedResources[category]) {
+                    options.push({
+                        label: resource.getLongName(),
+                        value: resource,
+                    });
+                }
+                listOptions.addGroup({
+                    label: category,
+                    options: options,
                 });
             }
-            if (index == -1) {
-                index = 0;
+            this.apiList.setValues(listOptions);
+
+            if (this.ctx.state.apiResource === null) {
+                this.ctx.state.apiResource = this.apiList.getSelectedValue();
             }
-            this.ctx.state.apiResource = resources[index];
-            this.apiList.setValues(resources.map(r => { return r.getLongName(); }));
-            this.apiList.select(index);
+            else {
+                this.apiList.selectValue(this.ctx.state.apiResource);
+            }
             doneCb();
         }).catch(e => {
             console.log(e);
@@ -154,7 +196,6 @@ class App {
                         ], {
                             encoding: null,
                         }, (error) => {
-                            // cb(error, stdout.toLocaleString().split("\n"));
                             if (error) {
                                 throw error;
                             }
@@ -176,13 +217,19 @@ class App {
             actionCallback: () => {
                 this.resourceListWidget.freeze();
                 this.ctx.screen.saveFocus();
-                const list = new DrilldownWidget(this.ctx,
-                    this.ctx.state.namespaces.map(n => { return n.metadata.name; }), {
-                        parent: this.ctx.screen,
-                        label: "Choose Namespace",
-                    });
-                list.onSelect((value, index) => {
-                    this.ctx.state.namespace = this.ctx.state.namespaces[index];
+                const optionList: OptionList<V1Namespace> = new OptionList();
+                for (let namespace of this.ctx.state.namespaces) {
+                    optionList.addOption({ label: namespace.metadata.name, value: namespace });
+                }
+                const maxLength = Math.max.apply(null, this.ctx.state.namespaces.map(n => n.metadata.name.length));
+                const screenWidth: any = this.ctx.screen.width;
+                const list = new DrilldownWidget<V1Namespace>(this.ctx, optionList, {
+                    parent: this.ctx.screen,
+                    label: "Choose Namespace",
+                    width: Math.max(20, Math.min(maxLength + 3, screenWidth - 10)),
+                });
+                list.onSelect((value) => {
+                    this.ctx.state.namespace = value;
                     this.topBar.update();
                     this.resourceListWidget.refresh();
                 });
@@ -204,27 +251,21 @@ class App {
             focusable: false,
         });
 
-        this.apiList = new DrilldownWidget(this.ctx, [], {
+        this.apiList = new DrilldownWidget(this.ctx, new OptionList(), {
             label: "API Resources",
             parent: leftPane,
             top: 0,
             left: 0,
             width: "100%",
             height: "100%-1",
+            closeOnSubmit: false,
         });
-        this.apiList.onSelect((value: string, index: number) => {
-            if (index == -1) {
-                this.ctx.state.apiResource = null;
-            }
-            else {
-                this.ctx.state.apiResource = this.ctx.state.apiResources[index];
-            }
+        this.apiList.onSelect((apiResource: APIResource) => {
+            this.ctx.state.apiResource = apiResource;
             this.resourceListWidget.refresh();
             this.ctx.screen.focusNext();
         });
         this.apiList.key("tab", () => {
-            // NOTE: crude hack
-            this.apiList.searchValue = this.apiList.searchValue.replace("\t", "");
             this.resourceListWidget.focus();
         });
 
@@ -249,8 +290,7 @@ class App {
         this.resourceListWidget = new ResourceListWidget(this.ctx);
         this.resourceListWidget.appendTo(mainPane);
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        this.ctx.screen.key(["C-r"], (ch, key) => {
+        this.ctx.screen.key(["C-r"], () => {
             self.updateContents();
         });
 
@@ -262,8 +302,7 @@ class App {
             this.ctx.screen.render();
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        this.ctx.screen.key(["q", "C-c", "C-q"], (ch, key) => {
+        this.ctx.screen.key(["q", "C-c", "C-q"], () => {
             this.saveAppState();
             return process.exit(0);
         });

@@ -4,7 +4,7 @@ import { ResourceActionMenu } from "./resource_action_menu";
 import { V1Namespace } from "@kubernetes/client-node";
 import { AppContext } from "../app_context";
 import { TypeaheadWidget } from "./typeahead_widget";
-import { PayloadListWidget } from "./payload_list_widget";
+import { SelectListWidget, OptionList, OptionItem } from "./select_list_widget";
 import { LooseMatcher } from "../search/loose_matcher";
 
 interface TypedResource {
@@ -29,7 +29,7 @@ export class ResourceListWidget {
 
     private timeout: NodeJS.Timeout = null
 
-    private resourceList: PayloadListWidget<TypedResource>;
+    private resourceList: SelectListWidget<TypedResource>;
     private actionMenu: ResourceActionMenu;
 
     public constructor(ctx: AppContext) {
@@ -43,7 +43,7 @@ export class ResourceListWidget {
             || this.interval < 0 || this.interval >= this.intervals.length) {
             this.interval = ResourceListWidget.DEFAULT_INTERVAL;
         }
-        this.resourceList = new PayloadListWidget<TypedResource>({
+        this.resourceList = new SelectListWidget<TypedResource>({
             top: 0,
             left: 0,
             width: "100%",
@@ -75,54 +75,52 @@ export class ResourceListWidget {
             },
         });
         this.resourceList.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
-        this.resourceList.on("focus", () => {
+        this.resourceList.onFocus(() => {
             this.resourceList.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
             this.render();
         });
-        this.resourceList.on("blur", () => {
+        this.resourceList.onBlur(() => {
             this.resourceList.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
             this.render();
         });
         this.resourceList.key("pageup", () => {
             // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
             let offset = -(this.resourceList.height / 2 | 0) || -1;
-            this.resourceList.select(this.resourceList.getSelectedIndex() + offset);
+            this.resourceList.selectIndex(this.resourceList.getSelectedIndex() + offset);
             this.resourceList.scrollTo(this.resourceList.getSelectedIndex() + offset);
         });
         this.resourceList.key("pagedown", () => {
             // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
             let offset = (this.resourceList.height / 2 | 0) || -1;
-            this.resourceList.select(this.resourceList.getSelectedIndex() + offset);
+            this.resourceList.selectIndex(this.resourceList.getSelectedIndex() + offset);
             this.resourceList.scrollTo(this.resourceList.getSelectedIndex() + offset);
         });
         this.resourceList.key("/", () => {
-            this.ctx.screen.log("pressed /");
             this.freeze();
             const typeahead = new TypeaheadWidget(this.ctx, {
                 parent: this.ctx.screen,
             });
             typeahead.on("search", (search, options, ret) => {
-                let lineIndex = this.search(search, options);
+                const option = this.search(search, options);
 
-                if (lineIndex == -1) {
+                if (option === null) {
                     ret.found = false;
                     return;
                 }
 
-                this.resourceList.select(lineIndex);
+                this.resourceList.select(option);
 
                 ret.found = true;
             });
             typeahead.on("destroy", () => {
                 this.unfreeze();
             });
+            typeahead.focus();
         });
-        this.resourceList.on("select", (item) => {
-            let resource = this.parseResourceFromLine(item.getText());
+        this.resourceList.onSubmit(resource => {
             if (!resource) {
                 return;
             }
-
             if (this.currentNamespace && resource.type) {
                 this.showActionMenu(this.currentNamespace, resource.type, resource.name);
             }
@@ -134,10 +132,10 @@ export class ResourceListWidget {
         this.run();
     }
 
-    private search(search: string, options: { forward: boolean; next: boolean }): number {
+    private search(search: string, options: { forward: boolean; next: boolean }): OptionItem<TypedResource> {
         const matcher = new LooseMatcher(search);
 
-        const values = this.resourceList.values;
+        const values = this.resourceList.options.toArray();
         const forward = options.forward;
         const offset = options.next ? (forward ? 1 : -1) : 0;
         for (
@@ -146,14 +144,17 @@ export class ResourceListWidget {
             i += forward ? 1 : -1
         ) {
             const value = values[i];
+            if (!("value" in value)) {
+                continue;
+            }
             if (!value.value) {
                 continue;
             }
             if (matcher.test(value.value.name)) {
-                return i;
+                return value;
             }
         }
-        return -1;
+        return null;
     }
 
     public parseResourceFromLine(line: string): TypedResource|null {
@@ -277,9 +278,9 @@ export class ResourceListWidget {
             this.currentTime = time;
 
             this.resourceList.setLabel(label);
-            const entries = [];
+            const entries = new OptionList<TypedResource>();
             if (error) {
-                entries.push({
+                entries.addOption({
                     label: `${error.name}: ${error.message}`,
                     value: null,
                 });
@@ -287,14 +288,14 @@ export class ResourceListWidget {
             else {
                 for (let line of lines) {
                     const resource = this.parseResourceFromLine(line);
-                    entries.push({
+                    entries.addOption({
                         label: line,
                         value: resource,
                     });
                 }
             }
-            this.resourceList.values = entries;
-            this.resourceList.select(selectedIndex);
+            this.resourceList.options = entries;
+            this.resourceList.selectIndex(selectedIndex);
             this.resourceList.scrollTo(selectedIndex);
 
             this.render();

@@ -106,7 +106,12 @@ export class APIListWidget {
             category: "Workloads"
         },
         {
-            group: /^.*\.k8s\.io|[^\.]+$/,
+            group: /^.*\.k8s\.io$/,
+            name: /.*/,
+            category: "Other"
+        },
+        {
+            group: /^[^\.]*$/,
             name: /.*/,
             category: "Other"
         },
@@ -161,8 +166,8 @@ export class APIListWidget {
                 "Network",
                 "Storage",
                 "Security",
-                "Custom",
                 "Other",
+                "Custom",
             ];
             for (let category of Object.keys(categorizedResources)) {
                 if (!categories.includes(category)) {

@@ -8,6 +8,7 @@ export interface LiveInputOptions extends blessed.Widgets.BoxOptions {
 
 export interface LiveInputWidget {
     _listener: (ch: string, key: any) => {};
+    _done: () => {};
 }
 
 export class LiveInputWidget extends blessed.widget.Textbox {
@@ -95,5 +96,11 @@ export class LiveInputWidget extends blessed.widget.Textbox {
 
     public getValue(): string {
         return this.liveValue;
+    }
+
+    public blur() {
+        if (this._done) {
+            this._done();
+        }
     }
 }

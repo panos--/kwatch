@@ -4,6 +4,17 @@ import { AppContext } from "../app_context";
 import { SelectListWidget, OptionItem, OptionList } from "./select_list_widget";
 import { LiveInputWidget } from "./live_input_widget";
 import { EventEmitter } from "events";
+import { MatcherBuilder } from "../search/matcher_builder";
+
+class DefaultMatcherBuilder implements MatcherBuilder {
+    public matcher(search: string) {
+        return {
+            test: function(subject: string): boolean {
+                return subject.includes(search);
+            }
+        };
+    }
+}
 
 interface DrilldownOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
@@ -18,6 +29,7 @@ export class DrilldownWidget<T> {
     private filteredValues: OptionList<T>;
     private list: SelectListWidget<T>;
     private eventEmitter = new EventEmitter();
+    private matcherBuilder = new DefaultMatcherBuilder();
 
     public constructor(ctx: AppContext, values: OptionList<T>, options: DrilldownOptions) {
         this.ctx = ctx;
@@ -142,9 +154,17 @@ export class DrilldownWidget<T> {
     }
 
     private reset() {
-        // this.search = "";
         this.filteredValues = this.values;
         this.input.setValue("");
+    }
+
+    public show() {
+        this.box.show();
+    }
+
+    public hide() {
+        this.input.blur();
+        this.box.hide();
     }
 
     public destroy() {
@@ -164,6 +184,10 @@ export class DrilldownWidget<T> {
         this.update();
     }
 
+    public setMatcherBuilder(matcherBuilder: MatcherBuilder) {
+        this.matcherBuilder = matcherBuilder;
+    }
+
     public get searchValue() {
         return this.input.getValue();
     }
@@ -175,8 +199,8 @@ export class DrilldownWidget<T> {
 
     private update() {
         let prevSelectedItem = this.getSelectedItem();
-        const searchValue = this.input.getValue();
-        this.filteredValues = this.values.filterLabels(label => { return label.includes(searchValue); });
+        const matcher = this.matcherBuilder.matcher(this.input.getValue());
+        this.filteredValues = this.values.filterLabels(label => { return matcher.test(label); });
         this.list.options = this.filteredValues;
         this.select(prevSelectedItem);
         if (this.getSelectedItem() === null) {
@@ -204,5 +228,21 @@ export class DrilldownWidget<T> {
 
     public key(name: string | string[], listener: (ch: any, key: blessed.Widgets.Events.IKeyEventArg) => void) {
         this.input.key(name, listener);
+    }
+
+    public get height(): number {
+        return typeof this.box.height == "number" ? this.box.height : parseInt(this.box.height);
+    }
+
+    public set height(height: number) {
+        this.box.height = height;
+    }
+
+    public get width(): number {
+        return typeof this.box.width == "number" ? this.box.width : parseInt(this.box.width);
+    }
+
+    public set width(width: number) {
+        this.box.width = width;
     }
 }

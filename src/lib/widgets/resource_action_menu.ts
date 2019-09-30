@@ -16,13 +16,24 @@ import { ShowSecretsAction } from "../actions/show_secrets_action";
 import { DumpSecretsAction } from "../actions/dump_secrets_action";
 import { ForceDeleteAction } from "../actions/force_delete_action";
 import { AppContext } from "../app_context";
+import { DrilldownWidget } from "./drilldown_widget";
+import { OptionList } from "./select_list_widget";
+import { LooseMatcherBuilder } from "../search/loose_matcher";
+
+interface FixedAction {
+    namespace: V1Namespace;
+    apiResource: APIResource;
+    resource: string;
+    action: Action;
+}
 
 export class ResourceActionMenu {
     private static readonly LABEL = "Choose Action";
 
     private ctx: AppContext;
     private parent: blessed.Widgets.Node;
-    private contextMenu: blessed.Widgets.ListElement;
+    private contextMenu: DrilldownWidget<FixedAction>;
+    private contextMenuActions: Action[];
     private onAfterCloseCallback: () => void = null;
 
     public constructor(ctx: AppContext, parent: blessed.Widgets.Node) {
@@ -32,7 +43,7 @@ export class ResourceActionMenu {
     }
 
     private init() {
-        this.contextMenu = blessed.list({
+        this.contextMenu = new DrilldownWidget<FixedAction>(this.ctx, new OptionList<FixedAction>(), {
             parent: this.parent,
             label: ResourceActionMenu.LABEL,
             top: "center",
@@ -58,44 +69,19 @@ export class ResourceActionMenu {
                 }
             },
         });
-        this.contextMenu.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
-        this.contextMenu.on("blur", () => {
+        this.contextMenu.setMatcherBuilder(new LooseMatcherBuilder({
+            caseInsensitive: true
+        }));
+        this.contextMenu.onBlur(() => {
             this.close();
         });
-        this.contextMenu.on("cancel", () => {
+        // TODO: support "cancel" event in drilldown widget
+        this.contextMenu.key("escape", () => {
             this.close();
         });
-        let keyPressLocked = false;
-        this.contextMenu.on("keypress", (ch) => {
-            if (!/^\d$/.test(ch)) {
-                return;
-            }
-
-            if (keyPressLocked) {
-                return;
-            }
-            keyPressLocked = true;
-
-            let num = parseInt(ch);
-            if (num == 0) {
-                num = 10;
-            }
-            num--;
-            if (num < this.activeContextMenuActions.length) {
-                this.contextMenu.select(num);
-                this.ctx.screen.render();
-                setTimeout(() => {
-                    this.close();
-                    this.executeContextMenuAction(num);
-                    keyPressLocked = false;
-                }, 100);
-            }
-
-            keyPressLocked = false;
-        });
-        this.contextMenu.on("select", (item, index) => {
+        this.contextMenu.onSubmit(() => {
             this.close();
-            this.executeContextMenuAction(index);
+            this.executeContextMenuAction(this.contextMenu.getSelectedValue());
         });
 
         this.initContextMenuActions();
@@ -103,13 +89,13 @@ export class ResourceActionMenu {
 
     public show(namespace: V1Namespace, apiResource: APIResource, resource: string) {
         this.populateContextMenu(namespace, apiResource, resource);
-        this.contextMenu.setIndex(100);
         this.contextMenu.show();
         this.contextMenu.focus();
         this.render();
     }
 
     private close() {
+        this.contextMenu.searchValue = "";
         this.contextMenu.hide();
         this.render();
         if (this.onAfterCloseCallback != null) {
@@ -120,9 +106,6 @@ export class ResourceActionMenu {
     public onAfterClose(callback: () => void) {
         this.onAfterCloseCallback = callback;
     }
-
-    private contextMenuActions: Action[];
-    private activeContextMenuActions: (() => void)[];
 
     private initContextMenuActions() {
         this.contextMenuActions = [
@@ -143,25 +126,28 @@ export class ResourceActionMenu {
     }
 
     private populateContextMenu(namespace: V1Namespace, apiResource: APIResource, resource: string) {
-        this.contextMenu.clearItems();
-        this.activeContextMenuActions = [];
+        const optionList = new OptionList<FixedAction>();
         let actions = this.contextMenuActions.filter((action) => { return action.appliesTo(apiResource); });
-        actions.forEach((action, index) => {
-            this.activeContextMenuActions.push(() => {
-                action.execute(this.ctx, namespace, apiResource, resource);
-            });
-            let itemKey = index + 1;
-            this.contextMenu.addItem(`${itemKey < 10 ? itemKey : (itemKey > 10 ? " " : 0)} ${action.getLabel()}`);
-        });
+        for (let action of actions) {
+            optionList.addOption({
+                label: action.getLabel(),
+                value: {
+                    namespace: namespace,
+                    apiResource: apiResource,
+                    resource: resource,
+                    action: action,
+                }});
+        }
+        this.contextMenu.setValues(optionList);
         const lengths = actions.map(action => { return action.getLabel().length; });
         let maxLength = Math.max.apply(null, lengths);
         const label = ResourceActionMenu.LABEL;
         this.contextMenu.width = Math.min(Math.max(maxLength, label.length + 4) + 2, 50);
-        this.contextMenu.height = Math.min(actions.length + 2, 20);
+        this.contextMenu.height = Math.min(actions.length + 5, 20);
     }
 
-    private executeContextMenuAction(index: number) {
-        this.activeContextMenuActions[index]();
+    private executeContextMenuAction(fixedAction: FixedAction) {
+        fixedAction.action.execute(this.ctx, fixedAction.namespace, fixedAction.apiResource, fixedAction.resource);
     }
 
     private render() {

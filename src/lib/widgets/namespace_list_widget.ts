@@ -2,6 +2,7 @@ import { AppContext } from "../app_context";
 import { OptionList } from "./select_list_widget";
 import { V1Namespace } from "@kubernetes/client-node";
 import { DrilldownWidget } from "./drilldown_widget";
+import { LooseMatcherBuilder } from "../search/loose_matcher";
 
 export class NamespaceListWidget {
     private ctx: AppContext;
@@ -24,6 +25,7 @@ export class NamespaceListWidget {
             label: "Choose Namespace",
             width: Math.max(20, Math.min(maxLength + 3, screenWidth - 10)),
         });
+        this.list.setMatcherBuilder(new LooseMatcherBuilder());
         this.list.onSubmit((namespace: V1Namespace) => {
             this.ctx.state.namespace = namespace;
             this.destroy();

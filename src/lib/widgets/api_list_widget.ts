@@ -3,6 +3,7 @@ import { AppContext } from "../app_context";
 import { DrilldownWidget } from "./drilldown_widget";
 import { APIResource } from "../client";
 import { OptionList } from "./select_list_widget";
+import { K8sUtils } from "../k8s_utils";
 
 interface ResourceCategory {
     group: string|RegExp;
@@ -106,6 +107,11 @@ export class APIListWidget {
             category: "Workloads"
         },
         {
+            group: /^(certmanager|certificates)\.k8s\.io$/,
+            name: /.*/,
+            category: "Certificates"
+        },
+        {
             group: /^.*\.k8s\.io$/,
             name: /.*/,
             category: "Other"
@@ -158,7 +164,9 @@ export class APIListWidget {
                 }
             }
 
-            const categorizedResources = this.categorizeResources(resources);
+            const filteredResources = this.filterPreferredVersions(resources);
+
+            const categorizedResources = this.categorizeResources(filteredResources);
             const categories = [
                 "Cluster",
                 "Workloads",
@@ -166,6 +174,7 @@ export class APIListWidget {
                 "Network",
                 "Storage",
                 "Security",
+                "Certificates",
                 "Other",
                 "Custom",
             ];
@@ -179,7 +188,7 @@ export class APIListWidget {
                 const options = [];
                 for (let resource of categorizedResources[category]) {
                     options.push({
-                        label: resource.getLongName(),
+                        label: resource.isCustomResource() ? resource.getLongName() : resource.getName(),
                         value: resource,
                     });
                 }
@@ -204,6 +213,40 @@ export class APIListWidget {
         }).catch(e => {
             console.log(e);
         });
+    }
+
+    private filterPreferredVersions(resources: APIResource[]) {
+        let standardResources: {[key: string]: APIResource[]} = {};
+        const customResources: APIResource[] = [];
+        for (let resource of resources) {
+            if (resource.isCustomResource()) {
+                customResources.push(resource);
+                continue;
+            }
+
+            if (!(resource.resource.name in standardResources)) {
+                standardResources[resource.resource.name] = [];
+            }
+            standardResources[resource.resource.name].push(resource);
+        }
+
+        for (let resourceName of Object.keys(standardResources)) {
+            standardResources[resourceName].sort((a, b) => {
+                return K8sUtils.compareAPIVersion(a.groupVersion, b.groupVersion);
+            });
+        }
+
+        const result: APIResource[] = [];
+        for (let resourceName of Object.keys(standardResources)) {
+            const candidates = standardResources[resourceName];
+            result.push(candidates[candidates.length - 1]);
+        }
+
+        for (let customResource of customResources) {
+            result.push(customResource);
+        }
+
+        return result;
     }
 
     private categorizeResources(resources: APIResource[]) {

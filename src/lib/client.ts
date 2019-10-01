@@ -174,6 +174,19 @@ export class APIResource {
     public getCapitalizedSingularName() {
         return _.capitalize(this.getSingularName());
     }
+
+    public isCustomResource(): boolean {
+        if (!this.group) {
+            return false;
+        }
+        if (!this.group.name.includes(".")) {
+            return false;
+        }
+        if (this.group.name.endsWith(".k8s.io")) {
+            return false;
+        }
+        return true;
+    }
 }
 
 export class VersionedAPIResource {
@@ -204,6 +217,7 @@ class APIGroupResources {
     public getNewestResources(): VersionedAPIResource[] {
         let result: VersionedAPIResource[] = [];
         for (let versionedResources of Object.values(this.resources)) {
+            // FIXME: doesn't work (i.e. v1 < v1alpha1)
             let newestResource = versionedResources.sort((a, b): number => {
                 return a.groupVersion.localeCompare(b.groupVersion);
             }).pop();

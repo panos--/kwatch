@@ -1,24 +1,45 @@
 // import * as term from "term";
 import * as blessed from "blessed";
 import * as k8s from "@kubernetes/client-node";
-import { K8sClient } from "./lib/client";
+import { K8sClient, APIResource } from "./lib/client";
+import { rename } from "fs";
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 
+// console.log(`cmp=${"v1".localeCompare("v1beta1")}`);
+// console.log(`cmp=${"a".localeCompare("z")}`);
+
+// if ("10" < "2") {
+//     console.log("10 < 2... meh...");
+// }
+// else {
+//     console.log("10 > 2! yay!");
+// }
+
+// const a = [1, 2, 3];
+// const foo = a[6];
+// console.log("foo:", foo);
+
 const client = new K8sClient(kc);
+client.getListableAPIResources((error, resources) => {
+    for (let resource of resources) {
+        console.log(resource.getFullName());
+    }
+});
+
 
 // (async function () {
 //     console.log(await client.getPod("exim-smarthost-0", "system"));
 // })();
 
-const screen = blessed.screen({
-    smartCSR: true,
-    log: process.env.HOME + "/blessed-terminal.log",
-    fullUnicode: true,
-    dockBorders: true,
-    ignoreDockContrast: true
-});
+// const screen = blessed.screen({
+//     smartCSR: true,
+//     log: process.env.HOME + "/blessed-terminal.log",
+//     fullUnicode: true,
+//     dockBorders: true,
+//     ignoreDockContrast: true
+// });
 
 // const term = blessed.terminal({
 //     parent: screen,

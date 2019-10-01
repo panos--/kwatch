@@ -259,8 +259,18 @@ export class ResourceListWidget {
                 return;
             }
 
-            const selectedOption = this.resourceList.getSelectedOption();
+            let selectedOption = this.resourceList.getSelectedOption();
             let selectedIndex = this.resourceList.getSelectedIndex();
+
+            if (!this.currentNamespace
+                || !namespace
+                || this.currentNamespace.metadata.name != namespace.metadata.name
+                || !this.currentAPIResource
+                || !apiResource
+                || this.currentAPIResource.getLongName() != apiResource.getLongName()) {
+                selectedOption = null;
+                selectedIndex = -1;
+            }
 
             this.currentNamespace = namespace;
             this.currentAPIResource = apiResource;

@@ -347,7 +347,7 @@ export class K8sClient {
         childProcess.execFile("kubectl", args, {
             encoding: null,
         }, (error, stdout) => {
-            cb(error, stdout.toLocaleString().split("\n"));
+            cb(error, stdout.toLocaleString().trimRight().split("\n"));
         });
     }
 

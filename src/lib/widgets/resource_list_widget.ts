@@ -83,18 +83,6 @@ export class ResourceListWidget {
             this.resourceList.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
             this.render();
         });
-        this.resourceList.key("pageup", () => {
-            // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
-            let offset = -(this.resourceList.height / 2 | 0) || -1;
-            this.resourceList.selectIndex(this.resourceList.getSelectedIndex() + offset);
-            this.resourceList.scrollTo(this.resourceList.getSelectedIndex() + offset);
-        });
-        this.resourceList.key("pagedown", () => {
-            // NOTE: not correct but better than nothing (scroll jumps on refreshes...)
-            let offset = (this.resourceList.height / 2 | 0) || -1;
-            this.resourceList.selectIndex(this.resourceList.getSelectedIndex() + offset);
-            this.resourceList.scrollTo(this.resourceList.getSelectedIndex() + offset);
-        });
         this.resourceList.key("/", () => {
             this.freeze();
             const typeahead = new TypeaheadWidget(this.ctx, {

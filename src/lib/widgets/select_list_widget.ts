@@ -200,6 +200,11 @@ export class SelectListWidget<T> {
         this.list.select(index);
     }
 
+    public getSelectedOption(): Option<T>|null {
+        const selectedItem = this._options[this.list.getSelectedIndex()];
+        return selectedItem ? selectedItem : null;
+    }
+
     public getSelectedItem(): OptionItem<T>|null {
         const selectedItem = this._options[this.list.getSelectedIndex()];
         // FIXME:

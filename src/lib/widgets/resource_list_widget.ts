@@ -259,7 +259,8 @@ export class ResourceListWidget {
                 return;
             }
 
-            const selectedIndex = this.resourceList.getSelectedIndex();
+            const selectedOption = this.resourceList.getSelectedOption();
+            let selectedIndex = this.resourceList.getSelectedIndex();
 
             this.currentNamespace = namespace;
             this.currentAPIResource = apiResource;
@@ -283,6 +284,49 @@ export class ResourceListWidget {
                 }
             }
             this.resourceList.options = entries;
+
+            if (selectedOption) {
+                if ("options" in selectedOption) {
+                    // should not be reached as we don't have option groups
+                    // in the list, but you never know...
+                }
+                else if (!selectedOption.value) {
+                    // this is a non-resource line (header, separator) on the
+                    // list.
+                    // do nothing - else what we would have to do would be
+                    // to compare by label, taking into account that these
+                    // are regularly not unique in the resource list (i.e.
+                    // empty lines, header lines) when we eventually support
+                    // multiple resource types in the list (ala `kubectl get all`).
+                    // instead for now we rely on index based re-select and
+                    // plan to eventually ensure only OptionItems are possible
+                    // to be selected in the list
+                }
+                else {
+                    const selectedResource = selectedOption.value;
+                    const selectedResourceIndex = entries.toArray().findIndex(entry => {
+                        if (!("value" in entry)) {
+                            // should not be reached as we don't have option groups
+                            // in the list, but you never know...
+                            return false;
+                        }
+                        const resource = entry.value;
+                        if (!resource) {
+                            return false;
+                        }
+                        if (resource.name != selectedResource.name) {
+                            return false;
+                        }
+                        if (resource.type.getLongName() != selectedResource.type.getLongName()) {
+                            return false;
+                        }
+                        return true;
+                    });
+                    if (selectedResourceIndex != -1) {
+                        selectedIndex = selectedResourceIndex;
+                    }
+                }
+            }
             this.resourceList.selectIndex(selectedIndex);
             this.resourceList.scrollTo(selectedIndex);
 

@@ -11,17 +11,25 @@
             "processId": "${command:PickProcess}",
             "protocol": "inspector"
         },
+        // {
+        //     "type": "node",
+        //     // "runtimeVersion": "10.16.3",
+        //     "request": "launch",
+        //     "name": "Launch Program",
+        //     "program": "${file}",
+        //     // "preLaunchTask": "tsc: build - tsconfig.json",
+        //     "outFiles": [
+        //         "${workspaceFolder}/dist/**/*.js"
+        //     ],
+        //     "runtimeExecutable": "${env:HOME}/.nvm/versions/node/v10.16.3/bin/node"
+        // },
         {
             "type": "node",
-            // "runtimeVersion": "10.16.3",
+            "runtimeVersion": "10.16.3", // If i need to run node 4.8.7
             "request": "launch",
-            "name": "Launch Program",
-            "program": "${file}",
-            "preLaunchTask": "tsc: build - tsconfig.json",
-            "outFiles": [
-                "${workspaceFolder}/dist/**/*.js"
-            ],
-            "runtimeExecutable": "${env:HOME}/.nvm/versions/node/v10.16.3/bin/node"
+            "name": "Launch main.ts",
+            "program": "${workspaceFolder}/dist/main.js",
+            "console": "externalTerminal"
         }
     ]
 }

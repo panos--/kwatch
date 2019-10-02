@@ -6,10 +6,7 @@
         {
             "type": "npm",
             "script": "build",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "group": "build"
         },
         {
             "type": "typescript",
@@ -18,6 +15,18 @@
                 "$tsc"
             ],
             "group": "build"
+        },
+        {
+            "type": "typescript",
+            "tsconfig": "tsconfig.json",
+            "option": "watch",
+            "problemMatcher": [
+                "$tsc-watch"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
         }
     ]
 }

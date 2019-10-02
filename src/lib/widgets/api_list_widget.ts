@@ -26,26 +26,26 @@ export class APIListWidget {
             name: "controllerrevisions",
             category: "Cluster"
         },
-        {
-            group: "autoscaling",
-            name: "horizontalpodautoscalers",
-            category: "Cluster"
-        },
-        {
-            group: "apiregistration.k8s.io",
-            name: "apiservices",
-            category: "Cluster"
-        },
+        // {
+        //     group: "autoscaling",
+        //     name: "horizontalpodautoscalers",
+        //     category: "Cluster"
+        // },
+        // {
+        //     group: "apiregistration.k8s.io",
+        //     name: "apiservices",
+        //     category: "Cluster"
+        // },
         {
             group: "events.k8s.io",
             name: "events",
             category: "Cluster"
         },
-        {
-            group: "scheduling.k8s.io",
-            name: "priorityclasses",
-            category: "Cluster"
-        },
+        // {
+        //     group: "scheduling.k8s.io",
+        //     name: "priorityclasses",
+        //     category: "Cluster"
+        // },
         {
             group: "",
             name: /^configmaps|secrets$/,

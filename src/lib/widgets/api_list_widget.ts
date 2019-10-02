@@ -185,6 +185,9 @@ export class APIListWidget {
             }
             const listOptions = new OptionList<APIResource>();
             for (let category of categories) {
+                if (!(category in categorizedResources)) {
+                    continue;
+                }
                 const options = [];
                 categorizedResources[category].sort((a, b) => {
                     const aName = a.isCustomResource() ? a.getLongName() : a.getName();

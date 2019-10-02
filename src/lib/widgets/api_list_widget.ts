@@ -186,6 +186,11 @@ export class APIListWidget {
             const listOptions = new OptionList<APIResource>();
             for (let category of categories) {
                 const options = [];
+                categorizedResources[category].sort((a, b) => {
+                    const aName = a.isCustomResource() ? a.getLongName() : a.getName();
+                    const bName = b.isCustomResource() ? b.getLongName() : b.getName();
+                    return aName.localeCompare(bName);
+                });
                 for (let resource of categorizedResources[category]) {
                     options.push({
                         label: resource.isCustomResource() ? resource.getLongName() : resource.getName(),

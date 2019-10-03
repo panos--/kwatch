@@ -152,6 +152,7 @@ class App {
                 namespaceListWidget.onSelect(() => {
                     this.topBar.update();
                     this.resourceListWidget.refresh();
+                    this.resourceListWidget.unfreeze();
                 });
                 namespaceListWidget.onClose(() => {
                     this.ctx.screen.restoreFocus();

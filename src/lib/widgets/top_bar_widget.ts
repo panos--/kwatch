@@ -33,12 +33,10 @@ export class TopBarWidget {
             tags: true,
             focusable: false,
             keys: false,
+            mouse: true,
             style: {
                 fg: "white",
                 bg: "magenta",
-                hover: {
-                    bg: "green"
-                }
             }
         });
         this.topBar.style.bg = this.ctx.colorScheme.COLOR_BG;
@@ -71,6 +69,8 @@ export class TopBarWidget {
                 bottom: 0,
             },
             keys: false,
+            mouse: false,
+            focusable: false,
             style: {
                 fg: "white",
                 bg: "blue",
@@ -86,7 +86,15 @@ export class TopBarWidget {
             actionCallback: itemOptions.actionCallback,
             box: itemBox,
         });
-        this.ctx.screen.key([itemOptions.key], () => { itemOptions.actionCallback(); });
+        this.ctx.screen.key([itemOptions.key], () => {
+            itemOptions.actionCallback();
+        });
+        itemBox.on("click", () => {
+            process.nextTick(() => {
+                this.ctx.screen.focusPop(); // remove clicked button from focus stack
+                itemOptions.actionCallback();
+            });
+        });
     }
 
     public addItem(itemOptions: TopBarItemOptions) {

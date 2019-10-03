@@ -28,8 +28,10 @@ export class NamespaceListWidget {
         this.list.setMatcherBuilder(new LooseMatcherBuilder());
         this.list.onSubmit((namespace: V1Namespace) => {
             this.ctx.state.namespace = namespace;
-            this.destroy();
-            this.ctx.screen.render();
+            process.nextTick(() => {
+                this.destroy();
+                this.ctx.screen.render();
+            });
         });
         this.list.onBlur(() => { this.destroy(); });
         this.list.key("escape", () => { this.destroy(); });

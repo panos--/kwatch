@@ -184,6 +184,7 @@ export class DrilldownWidget<T> {
         this.input.destroy();
         this.list.destroy();
         this.box.destroy();
+        this.screen.render();
     }
 
     public _focus() {

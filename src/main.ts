@@ -15,6 +15,9 @@ import { LightColorScheme, DarkColorScheme, ColorScheme } from "./lib/color_sche
 import { APIResource } from "./lib/client";
 import { APIListWidget } from "./lib/widgets/api_list_widget";
 import { NamespaceListWidget } from "./lib/widgets/namespace_list_widget";
+import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
+import { OptionList } from "./lib/widgets/select_list_widget";
+import { Context } from "@kubernetes/client-node/dist/config_types";
 
 class App {
     private ctx: AppContext;
@@ -112,34 +115,51 @@ class App {
             },
             actionCallback: () => {
                 const contexts = this.ctx.kubeConfig.getContexts();
-                const currentContext = this.ctx.kubeConfig.getCurrentContext();
-                const currentIndex = contexts.findIndex(context => { return context.name == currentContext; });
-                const list = this.ctx.widgetFactory.list(
-                    "Choose Context",
-                    contexts.map(context => { return context.name; }),
-                    {
-                        parent: box,
-                    },
-                    (context, index) => {
-                        this.ctx.kubeConfig.setCurrentContext(contexts[index].name);
-                        this.ctx.client.kubeConfig = this.ctx.kubeConfig;
-                        childProcess.execFile("kubectl", [
-                            "config", "use-context", contexts[index].name
-                        ], {
-                            encoding: null,
-                        }, (error) => {
-                            if (error) {
-                                throw error;
-                            }
-                        });
-                        this.topBar.update();
-                        this.updateContents();
-                        this.resourceListWidget.refresh();
+                const currentContextName = this.ctx.kubeConfig.getCurrentContext();
+                const currentContext = contexts.find(context => {
+                    return context.name == currentContextName;
+                });
+                const options = new OptionList<any>();
+                for (let context of contexts) {
+                    options.addOption({
+                        label: context.name,
+                        value: context,
                     });
-                if (currentIndex != -1) {
-                    list.select(currentIndex);
                 }
-                list.focus();
+                const maxLength = Math.max.apply(null, contexts.map(context => context.name.length));
+                const screenWidth: any = this.ctx.screen.width;
+                let drilldown = new DrilldownWidget<Context>(this.ctx, options, {
+                    parent: this.ctx.screen,
+                    label: "Choose Context",
+                    width: Math.max(20, Math.min(maxLength + 3, screenWidth - 10)),
+                });
+                drilldown.key("escape", () => { drilldown.destroy(); });
+                drilldown.onSubmit(context => {
+                    this.ctx.kubeConfig.setCurrentContext(context.name);
+                    this.ctx.client.kubeConfig = this.ctx.kubeConfig;
+                    childProcess.execFile("kubectl", [
+                        "config", "use-context", context.name
+                    ], {
+                        encoding: null,
+                    }, (error) => {
+                        if (error) {
+                            throw error;
+                        }
+                    });
+                    this.topBar.update();
+                    this.updateContents();
+                    this.resourceListWidget.unfreeze();
+                    this.resourceListWidget.refresh();
+                    process.nextTick(() => {
+                        drilldown.destroy();
+                    });
+                });
+                drilldown.onBlur(() => {
+                    drilldown.destroy();
+                    this.resourceListWidget.unfreeze();
+                });
+                drilldown.selectValue(currentContext);
+                drilldown.focus();
             },
         },{
             key: "n",

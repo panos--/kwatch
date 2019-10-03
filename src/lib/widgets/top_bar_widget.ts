@@ -3,7 +3,7 @@ import { AppContext } from "../app_context";
 import { Widgets } from "blessed";
 
 export interface TopBarItemOptions {
-    key: string;
+    key: string|string[];
     labelCallback: () => string;
     actionCallback: () => void;
 }
@@ -88,7 +88,7 @@ export class TopBarWidget {
             actionCallback: itemOptions.actionCallback,
             box: itemBox,
         });
-        this.ctx.screen.key([itemOptions.key], () => {
+        this.ctx.screen.key(itemOptions.key, () => {
             itemOptions.actionCallback();
         });
         itemBox.on("click", () => {

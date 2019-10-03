@@ -161,6 +161,14 @@ class App {
                     this.resourceListWidget.unfreeze();
                 });
                 namespaceListWidget.focus();
+            },
+        },{
+            key: ["h", "?", "f1"],
+            labelCallback: () => {
+                return "{yellow-fg}H{/yellow-fg}{cyan-fg}elp{/cyan-fg}";
+            },
+            actionCallback: () => {
+                this.help();
             }
         }]);
 
@@ -238,10 +246,6 @@ class App {
 
         this.ctx.screen.key(["space"], () => {
             this.resourceListWidget.pause();
-        });
-
-        this.ctx.screen.key(["?", "h", "f1"], () => {
-            this.help();
         });
 
         this.ctx.screen.render();

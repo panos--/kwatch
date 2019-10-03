@@ -132,6 +132,13 @@ export class DrilldownWidget<T> {
                 }
             }
         });
+        this.list.onSubmit(() => {
+            this.submit();
+        });
+        this.list.onClick(() => {
+            this.screen.focusPop();
+        });
+
         this.setValues(this.values);
     }
 

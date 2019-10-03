@@ -172,6 +172,10 @@ export class SelectListWidget<T> {
         this.list.on("focus", callback);
     }
 
+    public onClick(callback: () => void) {
+        this.list.onClick(callback);
+    }
+
     public key(name: string | string[], listener: (ch: any, key: Widgets.Events.IKeyEventArg) => void) {
         return this.list.key(name, listener);
     }

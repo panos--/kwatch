@@ -1,4 +1,5 @@
 import * as blessed from "blessed";
+import { Widgets } from "blessed";
 
 export interface List {
     height: number;
@@ -6,7 +7,9 @@ export interface List {
 }
 
 export class List extends blessed.widget.List {
-    public constructor(options: blessed.Widgets.ListOptions<blessed.Widgets.ListElementStyle>) {
+    private onClickCallbacks: (() => void)[] = [];
+
+    public constructor(options: Widgets.ListOptions<Widgets.ListElementStyle>) {
         super(options);
 
         if (options.keyable === true || options.keys === true) {
@@ -36,7 +39,21 @@ export class List extends blessed.widget.List {
         }
     }
 
+    public onClick(callback: () => void) {
+        this.onClickCallbacks.push(callback);
+    }
+
     public getSelectedIndex() {
         return this.selected;
+    }
+
+    public addItem(content: string): Widgets.BoxElement {
+        const item = super.addItem(content);
+        if (this.mouse) {
+            for (let callback of this.onClickCallbacks) {
+                item.on("click", callback);
+            }
+        }
+        return item;
     }
 }

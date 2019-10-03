@@ -95,7 +95,7 @@ export class DrilldownWidget<T> {
         });
         this.input.on("focus", () => {
             this.box.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
-            this.focus();
+            this._focus();
         });
         this.input.on("blur", () => {
             this.box.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG;
@@ -157,7 +157,13 @@ export class DrilldownWidget<T> {
     }
 
     public onBlur(callback: () => void) {
-        this.input.on("blur", callback);
+        this.input.on("blur", () => {
+            if (this.screen.focused === this.box
+                || this.screen.focused.hasAncestor(this.box)) {
+                return;
+            }
+            callback();
+        });
     }
 
     private reset() {
@@ -180,10 +186,14 @@ export class DrilldownWidget<T> {
         this.box.destroy();
     }
 
-    public focus() {
+    public _focus() {
         this.box.show();
         this.screen.render();
         this.input.readInput(() => {});
+    }
+
+    public focus() {
+        this.input.focus();
     }
 
     public setValues(values: OptionList<T>) {

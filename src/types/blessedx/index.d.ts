@@ -7,6 +7,10 @@ declare module "blessed" {
             mouse: boolean;
             addItem(content: string|blessed.Widgets.Node): blessed.Widgets.BoxElement;
         }
+
+        interface BoxOptions {
+            wrap?: boolean;
+        }
     }
 
     export namespace widget {

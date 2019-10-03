@@ -1,5 +1,6 @@
 import * as blessed from "blessed";
 import { AppContext } from "../app_context";
+import { Widgets } from "blessed";
 
 export interface TopBarItemOptions {
     key: string;
@@ -48,9 +49,8 @@ export class TopBarWidget {
         for (let item of this.items) {
             const label = item.labelCallback();
             item.box.left = currentOffset;
-            item.box.width = label.length + 2; // include padding
-            item.box.setText(label);
-            currentOffset += item.box.width + 1;
+            item.box.setContent(label);
+            currentOffset += item.box.getText().length + 2 + 1;
         }
         this.ctx.screen.render();
     }
@@ -60,7 +60,7 @@ export class TopBarWidget {
             parent: this.topBar,
             top: 0,
             left: 0,
-            width: 30,
+            width: "shrink",
             height: 1,
             padding: {
                 left: 1,
@@ -68,6 +68,8 @@ export class TopBarWidget {
                 top: 0,
                 bottom: 0,
             },
+            tags: true,
+            wrap: false,
             keys: false,
             mouse: false,
             focusable: false,

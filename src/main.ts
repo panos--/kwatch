@@ -107,7 +107,8 @@ class App {
         this.topBar.addItems([{
             key: "c",
             labelCallback: () => {
-                return `[C]ontext: ${this.ctx.kubeConfig.getCurrentContext()}`;
+                const labelValue = this.ctx.kubeConfig.getCurrentContext();
+                return `{yellow-fg}C{/yellow-fg}{cyan-fg}ontext:{/cyan-fg} ${blessed.escape(labelValue)}`;
             },
             actionCallback: () => {
                 const contexts = this.ctx.kubeConfig.getContexts();
@@ -143,7 +144,8 @@ class App {
         },{
             key: "n",
             labelCallback: () => {
-                return `[N]amespace: ${this.ctx.state.namespace ? this.ctx.state.namespace.metadata.name : "n/a"}`;
+                const labelValue = this.ctx.state.namespace ? this.ctx.state.namespace.metadata.name : "n/a";
+                return `{yellow-fg}N{/yellow-fg}{cyan-fg}amespace:{/cyan-fg} ${blessed.escape(labelValue)}`;
             },
             actionCallback: () => {
                 this.resourceListWidget.freeze();

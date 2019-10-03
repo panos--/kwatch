@@ -175,9 +175,11 @@ export class WidgetFactory {
             },
         }, options));
         list.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
-        list.on("blur", () => {
-            list.hide();
-            list.destroy();
+        list.on("blur", (newlyFocused) => {
+            if (list !== newlyFocused) {
+                list.hide();
+                list.destroy();
+            }
         });
         list.on("cancel", () => {
             list.hide();

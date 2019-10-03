@@ -16,52 +16,15 @@ export class ContainerPicker {
     }
 
     private init() {
-        const lengths = this.containers.map(value => { return value.length; });
-        let maxLength = Math.max.apply(null, lengths);
-        const label = "Choose Container";
-        this.containerMenu = blessed.list({
+        this.containerMenu = this.ctx.widgetFactory.list("Choose Container", this.containers, {
             parent: this.parent,
-            label: label,
-            top: "center",
-            left: "center",
-            width: Math.min(Math.max(maxLength, label.length + 2) + 2, 50),
-            height: 8,
             mouse: true,
             keys: true,
-            border: "line",
-            items: this.containers,
-            shrink: true,
-            style: {
-                item: {
-                    hover: {
-                        bg: "blue",
-                        fg: "white",
-                    }
-                },
-                selected: {
-                    bg: "blue",
-                    fg: "white",
-                    bold: true
-                }
-            },
-        });
-        this.containerMenu.style.border.bg = this.ctx.colorScheme.COLOR_BORDER_BG_FOCUS;
-        this.containerMenu.on("blur", () => {
-            this.containerMenu.hide();
-            this.containerMenu.destroy();
-        });
-        this.containerMenu.on("cancel", () => {
-            this.containerMenu.hide();
-            this.containerMenu.destroy();
-        });
-        this.containerMenu.on("select", (item, index) => {
-            this.containerMenu.hide();
-            this.containerMenu.destroy();
+        }, (container) => {
             if (this.onSelectCallback) {
-                this.onSelectCallback(this.containers[index]);
+                this.onSelectCallback.call(null, container);
             }
         });
-
     }
 
     public onSelect(onSelectCallback: (container: string) => void) {

@@ -18,6 +18,7 @@ import { NamespaceListWidget } from "./lib/widgets/namespace_list_widget";
 import { DrilldownWidget } from "./lib/widgets/drilldown_widget";
 import { OptionList } from "./lib/widgets/select_list_widget";
 import { Context } from "@kubernetes/client-node/dist/config_types";
+import { LooseMatcherBuilder } from "./lib/search/loose_matcher";
 
 class App {
     private ctx: AppContext;
@@ -133,6 +134,7 @@ class App {
                     label: "Choose Context",
                     width: Math.max(20, Math.min(maxLength + 3, screenWidth - 10)),
                 });
+                drilldown.setMatcherBuilder(new LooseMatcherBuilder());
                 drilldown.key("escape", () => { drilldown.destroy(); });
                 drilldown.onSubmit(context => {
                     this.ctx.kubeConfig.setCurrentContext(context.name);

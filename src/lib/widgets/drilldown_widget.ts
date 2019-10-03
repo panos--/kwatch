@@ -136,7 +136,7 @@ export class DrilldownWidget<T> {
             this.submit();
         });
         this.list.onClick(() => {
-            this.screen.focusPop();
+            this.input.focus();
         });
 
         this.setValues(this.values);

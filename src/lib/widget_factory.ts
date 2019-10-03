@@ -126,6 +126,10 @@ export class WidgetFactory {
         }, options));
         box.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
         box.setIndex(100);
+        box.on("blur", () => {
+            box.destroy();
+            screen.render();
+        });
         box.key("pageup", () => {
             const height = (typeof box.height == "number" ? box.height : parseInt(box.height));
             box.scroll(-(height / 2 | 0) || -1);

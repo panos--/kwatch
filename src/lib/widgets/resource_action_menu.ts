@@ -35,6 +35,7 @@ export class ResourceActionMenu {
     private contextMenu: DrilldownWidget<FixedAction>;
     private contextMenuActions: Action[];
     private onAfterCloseCallback: () => void = null;
+    private closed: boolean = true;
 
     public constructor(ctx: AppContext, parent: blessed.Widgets.Node) {
         this.ctx = ctx;
@@ -88,6 +89,10 @@ export class ResourceActionMenu {
     }
 
     public show(namespace: V1Namespace, apiResource: APIResource, resource: string) {
+        if (!this.closed) {
+            return;
+        }
+        this.closed = false;
         this.populateContextMenu(namespace, apiResource, resource);
         this.contextMenu.show();
         this.contextMenu.focus();
@@ -95,6 +100,10 @@ export class ResourceActionMenu {
     }
 
     private close() {
+        if (this.closed) {
+            return;
+        }
+        this.closed = true;
         this.contextMenu.searchValue = "";
         this.contextMenu.hide();
         this.render();

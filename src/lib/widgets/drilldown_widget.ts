@@ -178,6 +178,7 @@ export class DrilldownWidget<T> {
     public hide() {
         this.input.blur();
         this.box.hide();
+        this.screen.focusPop();
     }
 
     public destroy() {

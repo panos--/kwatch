@@ -130,6 +130,12 @@ export class WidgetFactory {
             box.destroy();
             screen.render();
         });
+        box.key("home", () => {
+            box.scrollTo(0);
+        });
+        box.key("end", () => {
+            box.scrollTo(box.getLines().length);
+        });
         box.key("pageup", () => {
             const height = (typeof box.height == "number" ? box.height : parseInt(box.height));
             box.scroll(-(height / 2 | 0) || -1);

@@ -40,3 +40,6 @@ dist/**/*
 
 # ignore yarn.lock
 yarn.lock
+
+# terminalizer demo.yml
+demo/demo.yml

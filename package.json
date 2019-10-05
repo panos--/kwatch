@@ -48,11 +48,13 @@
           "assets": [
             {
               "path": "out/node10/linux/kwatch.tar.gz",
-              "label": "kwatch-${nextRelease.version}-linux.tar.gz"
+              "name": "kwatch-${nextRelease.version}-linux.tar.gz",
+              "label": "Linux binary"
             },
             {
               "path": "out/node10/macos/kwatch.tar.gz",
-              "label": "kwatch-${nextRelease.version}-macos.tar.gz"
+              "name": "kwatch-${nextRelease.version}-macos.tar.gz",
+              "label": "macOS binary"
             }
           ]
         }

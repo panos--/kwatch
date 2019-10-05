@@ -107,7 +107,12 @@ restart deployments, etc.
 
 Please report bugs using Github issues.
 
-Pull requests are always welcome.
+Pull requests are always welcome. Please follow the
+[Angular Commit Message Guidelines](https://github.com/angular/angular/blob/master/CONTRIBUTING.md#commit)
+(where scope specifies affected components in this project's context instead of
+the ones defined there). The commit messages are used by
+[semantic-release](https://github.com/semantic-release/semantic-release)
+to decide on release version numbers and to generate changelogs.
 
 ## License
 

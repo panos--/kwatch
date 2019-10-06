@@ -240,9 +240,8 @@ export class ResourceListWidget {
 
         let namespaceName = this.ctx.state.namespace.metadata.name;
         let apiResourceName = this.ctx.state.apiResource.resource.name;
-        let timestamp = time.toLocaleString(undefined, {
-            hour12: false,
-        }) + "." + time.getMilliseconds();
+        let timestamp = time.toLocaleString() +
+            " " + ("" + time.getMilliseconds()).padStart(3, "0") + "ms";
 
         let label = `[${refreshRate}] ${namespaceName} / ${apiResourceName} @ ${timestamp}`;
 

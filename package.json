@@ -1,6 +1,6 @@
 {
   "name": "kwatch",
-  "version": "0.0.2",
+  "version": "0.0.0-development",
   "description": "Kubernetes Terminal UI",
   "bin": {
     "kwatch": "./dist/main.js"
@@ -19,12 +19,18 @@
     "debug": "npm run build && npm run watch-debug",
     "serve-debug": "nodemon --inspect dist/main.js",
     "watch-debug": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"cyan.bold,green.bold\" \"npm run watch-ts\" \"npm run serve-debug\"",
-    "pkg": "./node_modules/.bin/pkg --target node10-linux-x64 dist/main.js",
-    "semantic-release": "semantic-release",
     "prepare-demo": "npm install --no-save node-pty@0.8.1",
     "build-demo": "npm run prepare-demo && tsc -b tsconfig-demo.json",
     "watch-demo": "npm run prepare-demo && tsc -b tsconfig-demo.json -w",
-    "record-demo": "cd demo && ./record.sh && ./render.sh"
+    "record-demo": "cd demo && ./record.sh && ./render.sh",
+    "pkg": "npm run pkg-node10 && npm run pkg-node12",
+    "pkg-node10": "npm run pkg-node10-linux && npm run pkg-node10-macos",
+    "pkg-node10-linux": "out=out/node10/linux && mkdir -p $out && pkg --targets=node10-linux-x64 --output=$out/kwatch dist/main.js && cd $out && tar cvfz kwatch.tar.gz kwatch",
+    "pkg-node10-macos": "out=out/node10/macos && mkdir -p $out && pkg --targets=node10-macos-x64 --output=$out/kwatch dist/main.js && cd $out && tar cvfz kwatch.tar.gz kwatch",
+    "pkg-node12": "npm run pkg-node12-linux && npm run pkg-node12-macos",
+    "pkg-node12-linux": "out=out/node12/linux && mkdir -p $out && pkg --targets=node12-linux-x64 --output=$out/kwatch dist/main.js && cd $out && tar cvfz kwatch.tar.gz kwatch",
+    "pkg-node12-macos": "out=out/node12/macos && mkdir -p $out && pkg --targets=node12-macos-x64 --output=$out/kwatch dist/main.js && cd $out && tar cvfz kwatch.tar.gz kwatch",
+    "semantic-release": "semantic-release"
   },
   "files": [
     "dist/**/*"
@@ -33,22 +39,30 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      [
+        "@semantic-release/exec",
+        {
+          "prepareCmd": "npm run pkg-node10"
+        }
+      ],
       [
         "@semantic-release/github",
         {
           "assets": [
             {
-              "path": "out/node10/kwatch-linux.tar.gz",
-              "label": "kwatch-${nextRelease.version}-linux.tar.gz"
+              "path": "out/node10/linux/kwatch.tar.gz",
+              "name": "kwatch-${nextRelease.version}-linux.tar.gz",
+              "label": "Linux binary"
             },
             {
-              "path": "out/node10/kwatch-macos.tar.gz",
-              "label": "kwatch-${nextRelease.version}-macos.tar.gz"
+              "path": "out/node10/macos/kwatch.tar.gz",
+              "name": "kwatch-${nextRelease.version}-macos.tar.gz",
+              "label": "macOS binary"
             }
           ]
         }
-      ],
-      "@semantic-release/npm"
+      ]
     ]
   },
   "author": "Thomas Weiß <panos@unbunt.org>",
@@ -75,6 +89,7 @@
   },
   "devDependencies": {
     "@kubernetes/client-node": "^0.10.2",
+    "@semantic-release/exec": "^3.3.7",
     "@types/async": "^3.0.1",
     "@types/bcrypt-nodejs": "^0.0.30",
     "@types/blessed": "^0.1.12",

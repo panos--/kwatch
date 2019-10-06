@@ -147,7 +147,10 @@ export class APIListWidget {
     public async updateApiList(doneCb?: () => void) {
         this.ctx.client.getListableAPIResources((error, resources) => {
             if (error) {
-                console.log(error);
+                this.ctx.widgetFactory.error(
+                    "Error loading api resources\n\n"
+                    + `Reason: ${error.message}`
+                );
                 return;
             }
 

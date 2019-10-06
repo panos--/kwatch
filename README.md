@@ -13,7 +13,7 @@ A terminal UI for watching, inspecting and interacting with Kubernetes clusters.
 ## Motivation
 
 Tired of running `watch kubectl get pods` after applying some changes? Tired
-of wating for command completion when using `kubectl`?
+of waiting for command completion when using `kubectl`?
 
 This project's goal is to provide a terminal-based user interface around
 `kubectl` and kubernetes' API that is quick and convenient to work with,

@@ -50,7 +50,9 @@ class App {
     private async updateNamespaceList(doneCb: () => void) {
         this.ctx.client.getNamespaces((error, namespaces) => {
             if (error) {
-                console.log("Error updating namespace list:", error);
+                this.ctx.widgetFactory.error(
+                    "Error updating namespace list\n\n"
+                    + `Reason: ${error.message}`);
                 return;
             }
             // update state
@@ -78,15 +80,6 @@ class App {
     }
 
     private main() {
-        let logDir = (process.env.XDG_CACHE_HOME || process.env.HOME + "/.cache") + "/kwatch";
-        fs.mkdirSync(logDir, {recursive: true, mode: 0o750});
-        let logFile = logDir + "/kwatch.log";
-
-        this.ctx.screen = blessed.screen({
-            smartCSR: true,
-            log: logFile,
-        });
-
         try {
             this.loadAppState();
         } catch (e) {
@@ -354,13 +347,23 @@ class App {
             throw "undefined color-scheme";
         }
 
+        const logDir = (process.env.XDG_CACHE_HOME || process.env.HOME + "/.cache") + "/kwatch";
+        fs.mkdirSync(logDir, {recursive: true, mode: 0o750});
+        const logFile = logDir + "/kwatch.log";
+
+        const screen = blessed.screen({
+            smartCSR: true,
+            log: logFile,
+        });
+
         const ctx = new AppContext();
         ctx.state = new AppState();
         ctx.kubeConfig = new k8s.KubeConfig();
         ctx.kubeConfig.loadFromDefault();
         ctx.client = new k8sClient.K8sClient(ctx.kubeConfig);
         ctx.colorScheme = colorScheme;
-        ctx.widgetFactory = new WidgetFactory(ctx.colorScheme);
+        ctx.screen = screen;
+        ctx.widgetFactory = new WidgetFactory(ctx.screen, ctx.colorScheme);
         ctx.pager = process.env.PAGER || "less";
 
         const app = new App(ctx);

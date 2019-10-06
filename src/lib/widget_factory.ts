@@ -11,6 +11,10 @@ interface QuestionOptions extends blessed.Widgets.QuestionOptions {
     parent: blessed.Widgets.Node;
 }
 
+interface MessageOptions extends blessed.Widgets.MessageOptions {
+    parent: blessed.Widgets.Node;
+}
+
 interface BoxOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
 }
@@ -20,9 +24,11 @@ interface ListOptions<T> extends blessed.Widgets.ListOptions<T> {
 }
 
 export class WidgetFactory {
+    private screen: blessed.Widgets.Screen;
     private colorScheme: ColorScheme;
 
-    public constructor(colorScheme: ColorScheme) {
+    public constructor(screen: blessed.Widgets.Screen, colorScheme: ColorScheme) {
+        this.screen = screen;
         this.colorScheme = colorScheme;
     }
 
@@ -99,6 +105,45 @@ export class WidgetFactory {
         });
 
         return question;
+    }
+
+    public message(options: MessageOptions) {
+        const screen = options.parent.screen;
+
+        let message = blessed.message(_.merge({
+            top: "center",
+            left: "center",
+            height: 20,
+            width: 60,
+            mouse: true,
+            keys: true,
+            scrollable: true,
+            border: "line",
+            padding: {
+                top: 1,
+                left: 1,
+                right: 1,
+                bottom: 1,
+            }
+        }, options));
+        message.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
+
+        message.on("focus", () => {
+            message.style.border.bg = this.colorScheme.COLOR_BORDER_BG_FOCUS;
+            screen.render();
+        });
+        message.on("blur", () => {
+            message.style.border.bg = this.colorScheme.COLOR_BORDER_BG;
+            screen.render();
+        });
+
+        return message;
+    }
+
+    public error(text: string, options?: MessageOptions, callback?: () => void) {
+        this.message(options || { parent: this.screen })
+            .error(text, 0, callback || (() => {}));
+        this.screen.render();
     }
 
     public textBox(options: BoxOptions): blessed.Widgets.BoxElement {

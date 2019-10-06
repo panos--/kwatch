@@ -37,10 +37,12 @@ export class DeleteAction implements Action {
                 ctx.screen.append(loading);
                 loading.load("Deleting...");
                 ctx.client.deleteResource(namespace, apiResource, resource, false, (error) => {
-                    if (error) {
-                        throw error;
-                    }
                     loading.stop();
+                    if (error) {
+                        ctx.widgetFactory.error(
+                            `Error deleting ${apiResource.getName()} ${resource}`
+                            + `Reason: ${error.message}`);
+                    }
                 });
             });
     }

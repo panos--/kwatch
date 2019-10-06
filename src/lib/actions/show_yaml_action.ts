@@ -22,7 +22,10 @@ export class ShowYamlAction implements Action {
                 + apiResource.getCapitalizedSingularName() + " " + resource);
 
             if (error) {
-                console.log(error.message);
+                ctx.widgetFactory.error(
+                    `Error retrieving definition of resource ${resource}\n\n`
+                    + `Reason: ${error.message}`
+                );
                 return;
             }
             else {

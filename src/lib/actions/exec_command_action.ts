@@ -17,7 +17,7 @@ export class ExecCommandAction extends ExecAction {
         prompt.focus();
         prompt.input("Command:", "", (err, value) => {
             if (err) {
-                console.log(err);
+                ctx.screen.log(err);
                 return;
             }
             if (value === null) {

@@ -23,7 +23,10 @@ export class DescribeAction implements Action {
                 + apiResource.getCapitalizedSingularName() + " " + resource);
 
             if (error) {
-                console.log(error.message);
+                ctx.widgetFactory.error(
+                    `Error describing resource ${resource}\n\n`
+                    + `Reason: ${error.message}`
+                );
                 return;
             }
             else {

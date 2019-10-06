@@ -3,17 +3,17 @@ import fs from "fs";
 
 export class BlessedUtils {
     public static executeCommand(screen: blessed.Widgets.Screen, command: string, args: string[],
-        callback: (err: any, succes: boolean) => void) {
+        callback: (err?: Error, success?: boolean) => void) {
         BlessedUtils.executeCommandInternal(screen, command, args, false, callback);
     }
 
     public static executeCommandWait(screen: blessed.Widgets.Screen, command: string, args: string[],
-        callback: (err: any, succes: boolean) => void) {
+        callback: (err?: Error, success?: boolean) => void) {
         BlessedUtils.executeCommandInternal(screen, command, args, true, callback);
     }
 
     private static executeCommandInternal(screen: blessed.Widgets.Screen, command: string, args: string[],
-        wait: boolean, callback: (err: any, succes: boolean) => void) {
+        wait: boolean, callback: (err?: Error, success?: boolean) => void) {
         // NOTE: Run command in a terminal box inside blessed's screen. Left here just for reference.
 
         // const term = blessed.terminal({

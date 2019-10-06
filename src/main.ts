@@ -138,7 +138,12 @@ class App {
                         encoding: null,
                     }, (error) => {
                         if (error) {
-                            throw error;
+                            setTimeout(() => {
+                                this.ctx.widgetFactory.error(
+                                    `Error activating context ${context.name}\n\n`
+                                    + `Reason: ${error.message}`
+                                );
+                            }, 10);
                         }
                     });
                     this.topBar.update();
@@ -344,7 +349,7 @@ class App {
         };
         const colorScheme = colorSchemes[args["color-scheme"]];
         if (!colorScheme) {
-            throw "undefined color-scheme";
+            throw "internal error: undefined color-scheme";
         }
 
         const logDir = (process.env.XDG_CACHE_HOME || process.env.HOME + "/.cache") + "/kwatch";

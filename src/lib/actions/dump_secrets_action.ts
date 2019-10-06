@@ -28,15 +28,23 @@ export class DumpSecretsAction implements Action {
             BlessedUtils.executeCommandWait(ctx.screen, "sh", ["-c", "echo \"$KWATCH_SECRET_DUMP\""], (err, success) => {
                 process.env.KWATCH_SECRET_DUMP = "";
                 if (err) {
-                    console.log(err);
+                    ctx.widgetFactory.error(
+                        `Error dumping secret ${resource}\n\n`
+                        + `Reason: ${err.message}`
+                    );
                 }
                 else if (!success) {
-                    console.log("Command returned with non-zero exit code.");
+                    ctx.widgetFactory.error(
+                        `Error dumping secret ${resource}\n\n`
+                        + "Reason: Command returned with non-zero exit code"
+                    );
                 }
             });
-        }).catch(e => {
-            console.log(e);
-            ctx.screen.log(e);
+        }).catch(reason => {
+            ctx.widgetFactory.error(
+                `Error retrieving data of secret ${resource}\n\n`
+                + `Reason: ${reason}`
+            );
         });
     }
 

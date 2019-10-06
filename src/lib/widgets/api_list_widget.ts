@@ -221,8 +221,6 @@ export class APIListWidget {
             if (doneCb) {
                 doneCb();
             }
-        }).catch(e => {
-            console.log(e);
         });
     }
 

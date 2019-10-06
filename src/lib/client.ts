@@ -295,8 +295,14 @@ export class K8sClient {
                 });
         }
 
-        const apisApi = this.kubeConfig.makeApiClient(k8s.ApisApi);
-        let apisApiRes = await apisApi.getAPIVersions();
+        let apisApiRes;
+        try {
+            const apisApi = this.kubeConfig.makeApiClient(k8s.ApisApi);
+            apisApiRes = await apisApi.getAPIVersions();
+        } catch (e) {
+            cb(e);
+            null;
+        }
 
         const self = this;
         async.mapLimit(apisApiRes.body.groups, 10, async function (group, done) {
@@ -435,7 +441,7 @@ export class K8sClient {
             const res = await client.readNamespacedPod(podName, namespaceName);
             pod = res.body;
         } catch (e) {
-            throw e;
+            throw e.response.statusMessage;
         }
 
         return pod;
@@ -449,7 +455,7 @@ export class K8sClient {
             const res = await client.readNamespacedSecret(secretName, namespaceName);
             secret = res.body;
         } catch (e) {
-            throw e;
+            throw e.response.statusMessage;
         }
 
         return secret;

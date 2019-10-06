@@ -31,12 +31,11 @@ export class TailLogAction implements Action {
                 });
                 containerPicker.show();
             }
-        }, reason => {
-            // FIXME: Handle error
-            console.log(reason);
         }).catch(reason => {
-            // FIXME: Handle error
-            console.log(reason);
+            ctx.widgetFactory.error(
+                `Error retrieving data of pod ${resource}\n\n`
+                + `Reason: ${reason}`
+            );
         });
     };
 
@@ -50,12 +49,18 @@ export class TailLogAction implements Action {
             "-c",
             container,
             resource
-        ], (err: any, success: boolean) => {
+        ], (err?: Error, success?: boolean) => {
             if (err) {
-                console.log(err);
+                ctx.widgetFactory.error(
+                    "Error retrieving logs\n\n"
+                    + `Reason: ${err.message}`
+                );
             }
-            if (!success) {
-                console.log("Command returned with non-zero exit code");
+            else if (!success) {
+                ctx.widgetFactory.error(
+                    "Error retrieving logs\n\n"
+                    + "Command returned with non-zero exit code"
+                );
             }
         });
     }

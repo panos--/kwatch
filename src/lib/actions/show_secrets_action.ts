@@ -25,8 +25,11 @@ export class ShowSecretsAction implements Action {
             box.setText(decodedSecret);
             box.focus();
             ctx.screen.render();
-        }).catch(e => {
-            console.log(e);
+        }).catch(reason => {
+            ctx.widgetFactory.error(
+                `Error retrieving data of secret ${resource}\n\n`
+                + `Reason: ${reason}`
+            );
         });
     }
 }

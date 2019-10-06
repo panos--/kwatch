@@ -2,8 +2,27 @@
   "name": "kwatch",
   "version": "0.0.0-development",
   "description": "Kubernetes Terminal UI",
+  "author": "Thomas Weiß <panos@unbunt.org>",
+  "license": "Apache-2.0",
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "kubectl",
+    "terminal",
+    "ui",
+    "gui"
+  ],
+  "homepage": "https://github.com/panos--/kwatch#readme",
+  "bugs": {
+    "url": "https://github.com/panos--/kwatch/issues"
+  },
+  "repository": "github:panos--/kwatch",
   "bin": {
     "kwatch": "./dist/main.js"
+  },
+  "engines": {
+    "node": ">=10.13.0",
+    "npm": ">=6.4.1"
   },
   "scripts": {
     "start": "npm run main",
@@ -65,8 +84,6 @@
       ]
     ]
   },
-  "author": "Thomas Weiß <panos@unbunt.org>",
-  "license": "Apache-2.0",
   "dependencies": {
     "async": "^3.1.0",
     "blessed": "^0.1.81",
@@ -128,8 +145,4 @@
     "ts-node": "^8.3.0",
     "typescript": "^3.6.2"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/panos--/kwatch.git"
-  }
 }

@@ -189,13 +189,16 @@ export class DrilldownWidget<T> {
     }
 
     public _focus() {
-        this.box.show();
-        this.screen.render();
-        this.input.readInput(() => {});
+        if (this.box.visible) {
+            this.screen.render();
+            this.input.readInput(() => {});
+        }
     }
 
     public focus() {
-        this.input.focus();
+        if (this.box.visible) {
+            this.input.focus();
+        }
     }
 
     public setValues(values: OptionList<T>) {

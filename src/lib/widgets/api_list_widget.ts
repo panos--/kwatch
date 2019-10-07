@@ -5,7 +5,7 @@ import { APIResource, K8sClient } from "../client";
 import { OptionList } from "./select_list_widget";
 import { K8sUtils } from "../k8s_utils";
 
-interface ResourceCategory {
+interface ResourceCategoryMapping {
     group: string|RegExp;
     name: string|RegExp;
     category: string;
@@ -16,8 +16,154 @@ interface ModelContext {
     client: K8sClient;
 }
 
+class APIListHelper {
+    private resourceCategories: string[];
+    private resourceCategoryMappings: ResourceCategoryMapping[];
+
+    public constructor(resourceCategories: string[], resourceCategoryMappings: ResourceCategoryMapping[]) {
+        this.resourceCategories = resourceCategories;
+        this.resourceCategoryMappings = resourceCategoryMappings;
+
+        const mappingCategories = [...new Set(this.resourceCategoryMappings.map(cat => { return cat.category; }))];
+        for (let category of mappingCategories) {
+            if (!this.resourceCategories.includes(category)) {
+                throw "internal error: unknown category specified in resource-category mapping: " + category;
+            }
+        }
+    }
+
+    public filterPreferredVersions(resources: APIResource[]) {
+        let standardResources: {[key: string]: APIResource[]} = {};
+        const customResources: APIResource[] = [];
+        for (let resource of resources) {
+            if (resource.isCustomResource()) {
+                customResources.push(resource);
+                continue;
+            }
+
+            if (!(resource.resource.name in standardResources)) {
+                standardResources[resource.resource.name] = [];
+            }
+            standardResources[resource.resource.name].push(resource);
+        }
+
+        for (let resourceName of Object.keys(standardResources)) {
+            standardResources[resourceName].sort((a, b) => {
+                return K8sUtils.compareAPIVersion(a.groupVersion, b.groupVersion);
+            });
+        }
+
+        const result: APIResource[] = [];
+        for (let resourceName of Object.keys(standardResources)) {
+            const candidates = standardResources[resourceName];
+            result.push(candidates[candidates.length - 1]);
+        }
+
+        for (let customResource of customResources) {
+            result.push(customResource);
+        }
+
+        return result;
+    }
+
+    public categorizeResources(resources: APIResource[]) {
+        const groupedResources: {[group: string]: APIResource[]} = {};
+        for (let r of resources) {
+            let category = this.categorizeResource(r);
+            if (!(category in groupedResources)) {
+                groupedResources[category] = [];
+            }
+            groupedResources[category].push(r);
+
+            category = null;
+        }
+        return groupedResources;
+    }
+
+    public categorizeResource(resource: APIResource): string|null {
+        let category = null;
+        for (let matcher of this.resourceCategoryMappings) {
+            let groupMatched = false;
+            const resourceGroupName = resource.group ? resource.group.name : "";
+            if (typeof matcher.group == "string") {
+                if (matcher.group == resourceGroupName) {
+                    groupMatched = true;
+                }
+            }
+            else if (matcher.group.test(resourceGroupName)) {
+                groupMatched = true;
+            }
+            if (!groupMatched) {
+                continue;
+            }
+
+            let nameMatched = false;
+            if (typeof matcher.name == "string") {
+                if (matcher.name == resource.resource.name) {
+                    nameMatched = true;
+                }
+            }
+            else if (matcher.name.test(resource.resource.name)) {
+                nameMatched = true;
+            }
+            if (nameMatched) {
+                category = matcher.category;
+                break;
+            }
+        }
+
+        if (category === null) {
+            category = "Unknown";
+        }
+
+        return category;
+    }
+
+    public sortResources(resources: APIResource[]) {
+        resources.sort((a, b) => {
+            const aName = a.isCustomResource() ? a.getLongName() : a.getName();
+            const bName = b.isCustomResource() ? b.getLongName() : b.getName();
+            return aName.localeCompare(bName);
+        });
+    }
+
+    public buildOptionList(categorizedResources: { [x: string]: APIResource[] }): OptionList<APIResource> {
+        const listOptions = new OptionList<APIResource>();
+        for (let category of this.resourceCategories) {
+            if (!(category in categorizedResources)) {
+                continue;
+            }
+            const options = [];
+            this.sortResources(categorizedResources[category]);
+            for (let resource of categorizedResources[category]) {
+                options.push({
+                    label: resource.isCustomResource() ? resource.getLongName() : resource.getName(),
+                    value: resource,
+                });
+            }
+            listOptions.addGroup({
+                label: category,
+                options: options,
+            });
+        }
+        return listOptions;
+    }
+}
+
 class APIListModel {
-    private readonly resourceCategories: ResourceCategory[] = [
+    private readonly resourceCategories = [
+        "Cluster",
+        "Workloads",
+        "Config",
+        "Network",
+        "Storage",
+        "Security",
+        "Certificates",
+        "Other",
+        "Custom",
+    ];
+
+    private readonly resourceCategoryMappings: ResourceCategoryMapping[] = [
         {
             group: "",
             name: /^componentstatuses|events|namespaces|nodes$/,
@@ -131,11 +277,13 @@ class APIListModel {
     ];
 
     private ctx: ModelContext;
+    private helper: APIListHelper;
 
     private updateCallback: (options: OptionList<APIResource>, selectedValue: APIResource|null) => void;
 
     public constructor(ctx: ModelContext) {
         this.ctx = ctx;
+        this.helper = new APIListHelper(this.resourceCategories, this.resourceCategoryMappings);
     }
 
     public onUpdate(callback: (options: OptionList<APIResource>, selectedValue: APIResource|null) => void) {
@@ -170,47 +318,9 @@ class APIListModel {
                 }
             }
 
-            const filteredResources = this.filterPreferredVersions(resources);
-
-            const categorizedResources = this.categorizeResources(filteredResources);
-            const categories = [
-                "Cluster",
-                "Workloads",
-                "Config",
-                "Network",
-                "Storage",
-                "Security",
-                "Certificates",
-                "Other",
-                "Custom",
-            ];
-            for (let category of Object.keys(categorizedResources)) {
-                if (!categories.includes(category)) {
-                    categories.push(category);
-                }
-            }
-            const listOptions = new OptionList<APIResource>();
-            for (let category of categories) {
-                if (!(category in categorizedResources)) {
-                    continue;
-                }
-                const options = [];
-                categorizedResources[category].sort((a, b) => {
-                    const aName = a.isCustomResource() ? a.getLongName() : a.getName();
-                    const bName = b.isCustomResource() ? b.getLongName() : b.getName();
-                    return aName.localeCompare(bName);
-                });
-                for (let resource of categorizedResources[category]) {
-                    options.push({
-                        label: resource.isCustomResource() ? resource.getLongName() : resource.getName(),
-                        value: resource,
-                    });
-                }
-                listOptions.addGroup({
-                    label: category,
-                    options: options,
-                });
-            }
+            const filteredResources = this.helper.filterPreferredVersions(resources);
+            const categorizedResources = this.helper.categorizeResources(filteredResources);
+            const listOptions = this.helper.buildOptionList(categorizedResources);
 
             if (this.ctx.state.apiResource === null) {
                 // "value" in option => value instanceof OptionItem
@@ -224,93 +334,6 @@ class APIListModel {
                 callback();
             }
         });
-    }
-
-    private filterPreferredVersions(resources: APIResource[]) {
-        let standardResources: {[key: string]: APIResource[]} = {};
-        const customResources: APIResource[] = [];
-        for (let resource of resources) {
-            if (resource.isCustomResource()) {
-                customResources.push(resource);
-                continue;
-            }
-
-            if (!(resource.resource.name in standardResources)) {
-                standardResources[resource.resource.name] = [];
-            }
-            standardResources[resource.resource.name].push(resource);
-        }
-
-        for (let resourceName of Object.keys(standardResources)) {
-            standardResources[resourceName].sort((a, b) => {
-                return K8sUtils.compareAPIVersion(a.groupVersion, b.groupVersion);
-            });
-        }
-
-        const result: APIResource[] = [];
-        for (let resourceName of Object.keys(standardResources)) {
-            const candidates = standardResources[resourceName];
-            result.push(candidates[candidates.length - 1]);
-        }
-
-        for (let customResource of customResources) {
-            result.push(customResource);
-        }
-
-        return result;
-    }
-
-    private categorizeResources(resources: APIResource[]) {
-        const groupedResources: {[group: string]: APIResource[]} = {};
-        for (let r of resources) {
-            let category = this.categorizeResource(r);
-            if (!(category in groupedResources)) {
-                groupedResources[category] = [];
-            }
-            groupedResources[category].push(r);
-
-            category = null;
-        }
-        return groupedResources;
-    }
-
-    private categorizeResource(resource: APIResource): string|null {
-        let category = null;
-        for (let matcher of this.resourceCategories) {
-            let groupMatched = false;
-            const resourceGroupName = resource.group ? resource.group.name : "";
-            if (typeof matcher.group == "string") {
-                if (matcher.group == resourceGroupName) {
-                    groupMatched = true;
-                }
-            }
-            else if (matcher.group.test(resourceGroupName)) {
-                groupMatched = true;
-            }
-            if (!groupMatched) {
-                continue;
-            }
-
-            let nameMatched = false;
-            if (typeof matcher.name == "string") {
-                if (matcher.name == resource.resource.name) {
-                    nameMatched = true;
-                }
-            }
-            else if (matcher.name.test(resource.resource.name)) {
-                nameMatched = true;
-            }
-            if (nameMatched) {
-                category = matcher.category;
-                break;
-            }
-        }
-
-        if (category === null) {
-            category = "Unknown";
-        }
-
-        return category;
     }
 }
 

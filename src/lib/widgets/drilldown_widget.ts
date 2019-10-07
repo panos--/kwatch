@@ -1,6 +1,6 @@
 import * as blessed from "blessed";
 import _ from "lodash";
-import { AppContext } from "../app_context";
+import { AppViewContext } from "../app_context";
 import { SelectListWidget, OptionItem, OptionList } from "./select_list_widget";
 import { LiveInputWidget } from "./live_input_widget";
 import { EventEmitter } from "events";
@@ -21,7 +21,7 @@ interface DrilldownOptions extends blessed.Widgets.BoxOptions {
 }
 
 export class DrilldownWidget<T> {
-    private ctx: AppContext;
+    private ctx: AppViewContext;
     private screen: blessed.Widgets.Screen;
     private box: blessed.Widgets.BoxElement;
     private input: LiveInputWidget;
@@ -31,7 +31,7 @@ export class DrilldownWidget<T> {
     private eventEmitter = new EventEmitter();
     private matcherBuilder = new DefaultMatcherBuilder();
 
-    public constructor(ctx: AppContext, values: OptionList<T>, options: DrilldownOptions) {
+    public constructor(ctx: AppViewContext, values: OptionList<T>, options: DrilldownOptions) {
         this.ctx = ctx;
         this.screen = options.parent.screen;
         this.values = values;

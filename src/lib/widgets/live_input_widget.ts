@@ -1,6 +1,6 @@
 import * as blessed from "blessed";
 import _ from "lodash";
-import { AppContext } from "../app_context";
+import { AppViewContext } from "../app_context";
 
 export interface LiveInputOptions extends blessed.Widgets.BoxOptions {
     parent: blessed.Widgets.Node;
@@ -12,12 +12,12 @@ export interface LiveInputWidget {
 }
 
 export class LiveInputWidget extends blessed.widget.Textbox {
-    private ctx: AppContext;
+    private ctx: AppViewContext;
     private liveValue: string = "";
 
     private _origListener: (ch: string, key: any) => {} = null;
 
-    public constructor(ctx: AppContext, options: LiveInputOptions) {
+    public constructor(ctx: AppViewContext, options: LiveInputOptions) {
         super(_.merge({
             top: 0,
             left: 0,

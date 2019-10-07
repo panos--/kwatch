@@ -1,7 +1,7 @@
 import { Widgets } from "blessed";
-import { AppContext } from "../app_context";
+import { AppContext, AppState, AppViewContext } from "../app_context";
 import { DrilldownWidget } from "./drilldown_widget";
-import { APIResource } from "../client";
+import { APIResource, K8sClient } from "../client";
 import { OptionList } from "./select_list_widget";
 import { K8sUtils } from "../k8s_utils";
 
@@ -11,10 +11,12 @@ interface ResourceCategory {
     category: string;
 }
 
-export class APIListWidget {
-    private ctx: AppContext;
-    private drilldown: DrilldownWidget<APIResource>;
+interface ModelContext {
+    state: AppState;
+    client: K8sClient;
+}
 
+class APIListModel {
     private readonly resourceCategories: ResourceCategory[] = [
         {
             group: "",
@@ -128,29 +130,30 @@ export class APIListWidget {
         }
     ];
 
-    public constructor(ctx: AppContext, parent: Widgets.Node) {
+    private ctx: ModelContext;
+
+    private updateCallback: (options: OptionList<APIResource>, selectedValue: APIResource|null) => void;
+
+    public constructor(ctx: ModelContext) {
         this.ctx = ctx;
-        this.init(parent);
     }
 
-    private init(parent: Widgets.Node) {
-        this.drilldown = new DrilldownWidget(this.ctx, new OptionList(), {
-            label: "API Resources",
-            parent: parent,
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%-1",
-        });
+    public onUpdate(callback: (options: OptionList<APIResource>, selectedValue: APIResource|null) => void) {
+        this.updateCallback = callback;
     }
 
-    public async updateApiList(doneCb?: () => void) {
+    public emitUpdate(options: OptionList<APIResource>, selectedValue: APIResource|null) {
+        if (this.updateCallback) {
+            this.updateCallback.call(null, options, selectedValue);
+        }
+    }
+
+    public async updateApiList(callback?: (error?: string) => void) {
         this.ctx.client.getListableAPIResources((error, resources) => {
             if (error) {
-                this.ctx.widgetFactory.error(
+                callback(
                     "Error loading api resources\n\n"
-                    + `Reason: ${error.message}`
-                );
+                    + `Reason: ${error.message}`);
                 return;
             }
 
@@ -208,18 +211,17 @@ export class APIListWidget {
                     options: options,
                 });
             }
-            this.drilldown.setValues(listOptions);
 
             if (this.ctx.state.apiResource === null) {
-                this.ctx.state.apiResource = this.drilldown.getSelectedValue();
-            }
-            else {
-                this.drilldown.selectValue(this.ctx.state.apiResource);
+                // "value" in option => value instanceof OptionItem
+                const value = listOptions.toArray().find(option => { return "value" in option; });
+                this.ctx.state.apiResource = value && "value" in value ? value.value : null;
             }
 
-            this.ctx.screen.render();
-            if (doneCb) {
-                doneCb();
+            this.emitUpdate(listOptions, this.ctx.state.apiResource);
+
+            if (callback) {
+                callback();
             }
         });
     }
@@ -310,6 +312,33 @@ export class APIListWidget {
 
         return category;
     }
+}
+
+class APIListView {
+    private ctx: AppViewContext;
+    private drilldown: DrilldownWidget<APIResource>;
+
+    public constructor(ctx: AppContext, parent: Widgets.Node) {
+        this.ctx = ctx;
+        this.drilldown = new DrilldownWidget(ctx, new OptionList(), {
+            label: "API Resources",
+            parent: parent,
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%-1",
+        });
+    }
+
+    public update(listOptions: OptionList<APIResource>, selectedValue: APIResource) {
+        this.drilldown.setValues(listOptions);
+        this.drilldown.selectValue(selectedValue);
+        this.ctx.screen.render();
+    }
+
+    public showError(message: string) {
+        this.ctx.widgetFactory.error(message);
+    }
 
     public onSelect(callback: (value: APIResource) => void) {
         this.drilldown.onSubmit(callback);
@@ -317,5 +346,42 @@ export class APIListWidget {
 
     public key(name: string | string[], listener: (ch: any, key: Widgets.Events.IKeyEventArg) => void) {
         this.drilldown.key(name, listener);
+    }
+}
+
+export class APIListWidget {
+    private view: APIListView;
+    private model: APIListModel;
+
+    public constructor(ctx: AppContext, parent: Widgets.Node) {
+        this.view = new APIListView(ctx, parent);
+        this.model = new APIListModel(ctx);
+        this.init();
+    }
+
+    private init() {
+        this.model.onUpdate((options, selectedValue) => {
+            this.view.update(options, selectedValue);
+        });
+    }
+
+    public async updateApiList(doneCb?: () => void) {
+        this.model.updateApiList((error?) => {
+            if (error) {
+                this.view.showError(error);
+                return;
+            }
+            if (doneCb) {
+                doneCb();
+            }
+        });
+    }
+
+    public onSelect(callback: (value: APIResource) => void) {
+        this.view.onSelect(callback);
+    }
+
+    public key(name: string | string[], listener: (ch: any, key: Widgets.Events.IKeyEventArg) => void) {
+        this.view.key(name, listener);
     }
 }

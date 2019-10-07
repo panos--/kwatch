@@ -37,12 +37,28 @@ export class AppState implements State {
     }
 }
 
-export class AppContext {
+export interface AppModelContext {
+    kubeConfig: KubeConfig;
+    client: K8sClient;
+    state: State;
+    pager: string;
+}
+
+export interface AppViewContext {
+    screen: Widgets.Screen;
+    colorScheme: ColorScheme;
+    widgetFactory: WidgetFactory;
+}
+
+export class AppContext implements AppModelContext, AppViewContext {
+    // model context
     public kubeConfig: KubeConfig;
     public client: K8sClient;
+    public state: State;
+    public pager: string;
+
+    // view context
     public screen: Widgets.Screen;
     public colorScheme: ColorScheme;
     public widgetFactory: WidgetFactory;
-    public state: State;
-    public pager: string;
 }

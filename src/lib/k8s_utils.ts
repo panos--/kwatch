@@ -21,19 +21,6 @@ export class K8sUtils {
     public static regexAPIVersion = /^v(\d+)(?:([a-z]+)(\d+))?$/;
 
     public static compareAPIVersion(a: string, b: string) {
-        // console.log("v1<=>v1alpha1", compareAPIVersion("v1", "v1alpha1"));
-        // console.log("v1<=>v1beta1", compareAPIVersion("v1", "v1beta1"));
-        // console.log("v2<=>v1beta1", compareAPIVersion("v2", "v1beta1"));
-        // console.log("v2<=>v3beta1", compareAPIVersion("v2", "v3beta1"));
-        // console.log("v1alpha1<=>v1alpha2", compareAPIVersion("v1alpha1", "v1alpha2"));
-        // console.log("v1alpha3<=>v1alpha2", compareAPIVersion("v1alpha3", "v1alpha1"));
-        // console.log("v1alpha3<=>v1beta1", compareAPIVersion("v1alpha3", "v1beta1"));
-        // console.log("v1beta1<=>v1alpha1", compareAPIVersion("v1beta1", "v1alpha1"));
-        // console.log("v1<=>v2", compareAPIVersion("v1", "v2"));
-        // console.log("v2<=>v1", compareAPIVersion("v2", "v1"));
-        // console.log("v1alpha1<=>v1alpha1", compareAPIVersion("v1alpha1", "v1alpha1"));
-        // console.log("v1<=>v1", compareAPIVersion("v1", "v1"));
-
         const aMatches = K8sUtils.regexAPIVersion.exec(a);
         if (!aMatches) {
             throw "Invalid argument: a: not a valid version number";

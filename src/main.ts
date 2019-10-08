@@ -12,7 +12,7 @@ import { WidgetFactory } from "./lib/widget_factory";
 import { TopBarWidget } from "./lib/widgets/top_bar_widget";
 import { AppContext, AppState } from "./lib/app_context";
 import { LightColorScheme, DarkColorScheme, ColorScheme } from "./lib/color_scheme";
-import { APIResource } from "./lib/client";
+import { APIResource } from "./lib/api_resource";
 import { APIListWidget } from "./lib/widgets/api_list_widget";
 import { NamespaceListWidget } from "./lib/widgets/namespace_list_widget";
 import { DrilldownWidget } from "./lib/widgets/drilldown_widget";

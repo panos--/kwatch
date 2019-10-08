@@ -1,5 +1,6 @@
 import { KubeConfig, V1Namespace } from "@kubernetes/client-node";
-import { K8sClient, APIResource } from "./client";
+import { K8sClient } from "./client";
+import { APIResource } from "./api_resource";
 import { Widgets } from "blessed";
 import { WidgetFactory } from "./widget_factory";
 import { ColorScheme } from "./color_scheme";

@@ -1,7 +1,8 @@
 // import * as term from "term";
 import * as blessed from "blessed";
 import * as k8s from "@kubernetes/client-node";
-import { K8sClient, APIResource } from "./lib/client";
+import { K8sClient } from "./lib/client";
+import { APIResource } from "./lib/api_resource";
 import { rename } from "fs";
 
 const kc = new k8s.KubeConfig();

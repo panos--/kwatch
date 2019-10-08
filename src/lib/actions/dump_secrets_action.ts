@@ -1,5 +1,5 @@
 import { Action } from "./action";
-import { APIResource } from "../client";
+import { APIResource } from "../api_resource";
 import { V1Namespace } from "@kubernetes/client-node";
 import { K8sUtils } from "../k8s_utils";
 import { BlessedUtils } from "../blessed_utils";

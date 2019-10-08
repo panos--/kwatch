@@ -1,5 +1,5 @@
 import * as blessed from "blessed";
-import { APIResource } from "../client";
+import { APIResource } from "../api_resource";
 import { Action } from "../actions/action";
 import { DescribeAction } from "../actions/describe_action";
 import { V1Namespace } from "@kubernetes/client-node";

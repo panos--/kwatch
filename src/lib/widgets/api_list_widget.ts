@@ -1,7 +1,8 @@
 import { Widgets } from "blessed";
 import { AppContext, AppState, AppViewContext } from "../app_context";
 import { DrilldownWidget } from "./drilldown_widget";
-import { APIResource, K8sClient } from "../client";
+import { K8sClient } from "../client";
+import { APIResource } from "../api_resource";
 import { OptionList } from "./select_list_widget";
 import { K8sUtils } from "../k8s_utils";
 
@@ -11,12 +12,12 @@ interface ResourceCategoryMapping {
     category: string;
 }
 
-interface ModelContext {
+export interface ModelContext {
     state: AppState;
     client: K8sClient;
 }
 
-class APIListHelper {
+export class APIListHelper {
     private resourceCategories: string[];
     private resourceCategoryMappings: ResourceCategoryMapping[];
 
@@ -70,6 +71,9 @@ class APIListHelper {
         const groupedResources: {[group: string]: APIResource[]} = {};
         for (let r of resources) {
             let category = this.categorizeResource(r);
+            if (category === null) {
+                throw "internal error: not category found for api resource: " + r.getName();
+            }
             if (!(category in groupedResources)) {
                 groupedResources[category] = [];
             }
@@ -112,17 +116,13 @@ class APIListHelper {
             }
         }
 
-        if (category === null) {
-            category = "Unknown";
-        }
-
         return category;
     }
 
     public sortResources(resources: APIResource[]) {
         resources.sort((a, b) => {
-            const aName = a.isCustomResource() ? a.getLongName() : a.getName();
-            const bName = b.isCustomResource() ? b.getLongName() : b.getName();
+            const aName = a.getLongName();
+            const bName = b.getLongName();
             return aName.localeCompare(bName);
         });
     }
@@ -150,7 +150,7 @@ class APIListHelper {
     }
 }
 
-class APIListModel {
+export class APIListModel {
     private readonly resourceCategories = [
         "Cluster",
         "Workloads",
@@ -290,7 +290,7 @@ class APIListModel {
         this.updateCallback = callback;
     }
 
-    public emitUpdate(options: OptionList<APIResource>, selectedValue: APIResource|null) {
+    private emitUpdate(options: OptionList<APIResource>, selectedValue: APIResource|null) {
         if (this.updateCallback) {
             this.updateCallback.call(null, options, selectedValue);
         }

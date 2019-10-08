@@ -1,5 +1,5 @@
 import { V1Namespace } from "@kubernetes/client-node";
-import { APIResource } from "../client";
+import { APIResource } from "../api_resource";
 import { AppContext } from "../app_context";
 
 export interface Action {

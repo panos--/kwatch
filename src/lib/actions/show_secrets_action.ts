@@ -1,6 +1,6 @@
 import { Action } from "./action";
 import { V1Namespace } from "@kubernetes/client-node";
-import { APIResource } from "../client";
+import { APIResource } from "../api_resource";
 import { K8sUtils } from "../k8s_utils";
 import { AppContext } from "../app_context";
 

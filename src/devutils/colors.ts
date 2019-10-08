@@ -1,5 +1,5 @@
 import * as blessed from "blessed";
-import { LightColorScheme } from "./lib/color_scheme";
+import { LightColorScheme } from "../lib/color_scheme";
 
 const colorScheme = new LightColorScheme();
 

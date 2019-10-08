@@ -20,6 +20,6 @@
         "src/**/*"
     ],
     "exclude": [
-        "src/demo.ts"
+        "src/demo/demo.ts"
     ]
 }

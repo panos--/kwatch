@@ -15,5 +15,18 @@ module.exports = {
         // "**/test/**/*.test.(ts|js)"
         "**/test/**/*.test.ts"
     ],
-    testEnvironment: "node"
+    testEnvironment: "node",
+    collectCoverageFrom: [
+        "src/**/*.ts"
+    ],
+    coveragePathIgnorePatterns: [
+        "<rootDir>/coverage/",
+        "<rootDir>/demo/",
+        "<rootDir>/dist/",
+        "<rootDir>/node_modules/",
+        "<rootDir>/out/",
+        "<rootDir>/src/demo/",
+        "<rootDir>/src/types/",
+        "<rootDir>/src/devutils/",
+    ]
 };

@@ -25,5 +25,6 @@ module.exports = {
         "<rootDir>/src/demo/",
         "<rootDir>/src/types/",
         "<rootDir>/src/devutils/",
+        "<rootDir>/src/lib/vendor/",
     ]
 };

@@ -23,11 +23,7 @@ kc.loadFromDefault();
 // console.log("foo:", foo);
 
 const client = new K8sClient(kc);
-client.getListableAPIResources((error, resources) => {
-    for (let resource of resources) {
-        console.log(resource.getFullName());
-    }
-});
+client.getPod("es-all-0", "systemx").catch(e => {console.log(e);});
 
 
 // (async function () {

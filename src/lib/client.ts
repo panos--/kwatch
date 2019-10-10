@@ -1,193 +1,33 @@
-import * as k8s from "@kubernetes/client-node";
 import * as request from "request";
 import * as rp from "request-promise-native";
 import * as childProcess from "child_process";
 import async from "async";
-import { V1APIGroup, V1APIResourceList, V1APIResource, CoreV1Api, V1Namespace, V1Pod, V1Secret } from "@kubernetes/client-node";
+import {
+    V1APIGroup, V1APIResourceList, CoreV1Api, V1Namespace, V1Pod, V1Secret, KubeConfig, ApisApi
+} from "@kubernetes/client-node";
 import { APIResource } from "./api_resource";
-
-let primitives = [
-    "string",
-    "boolean",
-    "double",
-    "integer",
-    "long",
-    "float",
-    "number",
-    "any"
-];
-let enumsMap: {[index: string]: any} = {};
-let typeMap: {[index: string]: any} = {
-    "V1APIResource": k8s.V1APIResource,
-    "V1APIResourceList": k8s.V1APIResourceList,
-};
-class ObjectSerializer {
-    public static findCorrectType(data: any, expectedType: any) {
-        if (data == undefined) {
-            return expectedType;
-        }
-        else if (primitives.indexOf(expectedType.toLowerCase()) !== -1) {
-            return expectedType;
-        }
-        else if (expectedType === "Date") {
-            return expectedType;
-        }
-        else {
-            if (enumsMap[expectedType]) {
-                return expectedType;
-            }
-            if (!typeMap[expectedType]) {
-                return expectedType; // w/e we don't know the type
-            }
-            // Check the discriminator
-            let discriminatorProperty = typeMap[expectedType].discriminator;
-            if (discriminatorProperty == null) {
-                return expectedType; // the type does not have a discriminator. use it.
-            }
-            else {
-                if (data[discriminatorProperty]) {
-                    return data[discriminatorProperty]; // use the type given in the discriminator
-                }
-                else {
-                    return expectedType; // discriminator was not present (or an empty string)
-                }
-            }
-        }
-    }
-    public static serialize(data: any, type: any): any {
-        if (data == undefined) {
-            return data;
-        }
-        else if (primitives.indexOf(type.toLowerCase()) !== -1) {
-            return data;
-        }
-        else if (type.lastIndexOf("Array<", 0) === 0) { // string.startsWith pre es6
-            let subType = type.replace("Array<", ""); // Array<Type> => Type>
-            subType = subType.substring(0, subType.length - 1); // Type> => Type
-            let transformedData = [];
-            for (let index in data) {
-                let date = data[index];
-                transformedData.push(ObjectSerializer.serialize(date, subType));
-            }
-            return transformedData;
-        }
-        else if (type === "Date") {
-            return data.toString();
-        }
-        else {
-            if (enumsMap[type]) {
-                return data;
-            }
-            if (!typeMap[type]) { // in case we dont know the type
-                return data;
-            }
-            // get the map for the correct type.
-            let attributeTypes = typeMap[type].getAttributeTypeMap();
-            let instance: {[index: string]: any} = {};
-            for (let index in attributeTypes) {
-                let attributeType = attributeTypes[index];
-                instance[attributeType.baseName] = ObjectSerializer.serialize(data[attributeType.name], attributeType.type);
-            }
-            return instance;
-        }
-    }
-    public static deserialize(data: any, type: any): any {
-        // polymorphism may change the actual type.
-        type = ObjectSerializer.findCorrectType(data, type);
-        if (data == undefined) {
-            return data;
-        }
-        else if (primitives.indexOf(type.toLowerCase()) !== -1) {
-            return data;
-        }
-        else if (type.lastIndexOf("Array<", 0) === 0) { // string.startsWith pre es6
-            let subType = type.replace("Array<", ""); // Array<Type> => Type>
-            subType = subType.substring(0, subType.length - 1); // Type> => Type
-            let transformedData = [];
-            for (let index in data) {
-                let date = data[index];
-                transformedData.push(ObjectSerializer.deserialize(date, subType));
-            }
-            return transformedData;
-        }
-        else if (type === "Date") {
-            return new Date(data);
-        }
-        else {
-            if (enumsMap[type]) { // is Enum
-                return data;
-            }
-            if (!typeMap[type]) { // dont know the type
-                return data;
-            }
-            let instance = new typeMap[type]();
-            let attributeTypes = typeMap[type].getAttributeTypeMap();
-            for (let index in attributeTypes) {
-                let attributeType = attributeTypes[index];
-                instance[attributeType.name] = ObjectSerializer.deserialize(data[attributeType.baseName], attributeType.type);
-            }
-            return instance;
-        }
-    }
-}
-
-export class VersionedAPIResource {
-    public resource: V1APIResource;
-    public groupVersion: string;
-    public constructor(resource: V1APIResource, groupVersion: string) {
-        this.resource = resource;
-        this.groupVersion = groupVersion;
-    }
-}
-
-class APIGroupResources {
-    public group: V1APIGroup;
-    public resources: {[index: string]: VersionedAPIResource[]};
-
-    public constructor(group: V1APIGroup) {
-        this.group = group;
-        this.resources = {};
-    }
-
-    public addResource(resource: V1APIResource, groupVersion: string) {
-        if (!this.resources.hasOwnProperty(resource.name)) {
-            this.resources[resource.name] = [];
-        }
-        this.resources[resource.name].push(new VersionedAPIResource(resource, groupVersion));
-    }
-
-    public getNewestResources(): VersionedAPIResource[] {
-        let result: VersionedAPIResource[] = [];
-        for (let versionedResources of Object.values(this.resources)) {
-            // FIXME: doesn't work (i.e. v1 < v1alpha1)
-            let newestResource = versionedResources.sort((a, b): number => {
-                return a.groupVersion.localeCompare(b.groupVersion);
-            }).pop();
-            result.push(newestResource);
-        }
-        return result;
-    }
-}
+import { ObjectSerializer } from "./vendor/object_serializer";
+import { APIGroupResources } from "./api_group_resources";
 
 export class K8sClient {
-    private _kubeConfig: k8s.KubeConfig;
+    private _kubeConfig: KubeConfig;
     private coreApi: CoreV1Api;
 
-    public constructor(kubeConfig?: k8s.KubeConfig) {
+    public constructor(kubeConfig?: KubeConfig) {
         if (!kubeConfig) {
-            kubeConfig = new k8s.KubeConfig();
+            kubeConfig = new KubeConfig();
             kubeConfig.loadFromDefault();
         }
         this.kubeConfig = kubeConfig;
     }
 
-    public get kubeConfig(): k8s.KubeConfig {
+    public get kubeConfig(): KubeConfig {
         return this._kubeConfig;
     }
 
-    public set kubeConfig(kubeConfig: k8s.KubeConfig) {
+    public set kubeConfig(kubeConfig: KubeConfig) {
         this._kubeConfig = kubeConfig;
-        this.coreApi = this._kubeConfig.makeApiClient(k8s.CoreV1Api);
+        this.coreApi = this._kubeConfig.makeApiClient(CoreV1Api);
     }
 
     private async request(endpoint: string) {
@@ -221,7 +61,7 @@ export class K8sClient {
     public async getListableAPIResources(cb: (error?: Error, resources?: APIResource[]) => void) {
         let resources: APIResource[] = [];
 
-        const coreApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+        const coreApi = this.kubeConfig.makeApiClient(CoreV1Api);
         let coreApiRes;
         try {
             coreApiRes = await coreApi.getAPIResources();
@@ -239,7 +79,7 @@ export class K8sClient {
 
         let apisApiRes;
         try {
-            const apisApi = this.kubeConfig.makeApiClient(k8s.ApisApi);
+            const apisApi = this.kubeConfig.makeApiClient(ApisApi);
             apisApiRes = await apisApi.getAPIVersions();
         } catch (e) {
             cb(e);
@@ -383,7 +223,10 @@ export class K8sClient {
             const res = await client.readNamespacedPod(podName, namespaceName);
             pod = res.body;
         } catch (e) {
-            throw e.response.statusMessage;
+            if (e.response) {
+                throw e.response.statusMessage;
+            }
+            throw e;
         }
 
         return pod;
@@ -397,7 +240,10 @@ export class K8sClient {
             const res = await client.readNamespacedSecret(secretName, namespaceName);
             secret = res.body;
         } catch (e) {
-            throw e.response.statusMessage;
+            if (e.response) {
+                throw e.response.statusMessage;
+            }
+            throw e;
         }
 
         return secret;

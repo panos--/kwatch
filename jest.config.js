@@ -16,9 +16,6 @@ module.exports = {
         "**/test/**/*.test.ts"
     ],
     testEnvironment: "node",
-    collectCoverageFrom: [
-        "src/**/*.ts"
-    ],
     coveragePathIgnorePatterns: [
         "<rootDir>/coverage/",
         "<rootDir>/demo/",

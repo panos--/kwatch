@@ -1,17 +1,11 @@
-import * as rp from "request-promise-native";
-import { V1Namespace, V1NamespaceList, V1Pod, V1Secret, V1APIResourceList, V1APIGroupList, V1APIGroup } from "@kubernetes/client-node";
+import { V1Namespace, V1NamespaceList, V1Pod, V1Secret, V1APIResourceList, V1APIGroupList } from "@kubernetes/client-node";
 import { KubeConfig, CoreV1Api, ApisApi } from "../vendor/kube_api";
 import { K8sClient } from "../client";
 import { mocked } from "ts-jest/utils";
 import { IncomingMessage } from "http";
 import { MaybeMocked } from "ts-jest/dist/util/testing";
-import { APIResource } from "../api_resource";
-import requestPromise = require("request-promise-native");
-import * as request from "request";
-import { RequestPromise } from "request-promise-native";
 
 jest.mock("../vendor/kube_api");
-jest.mock("request-promise-native");
 
 describe("config handling", () => {
     it("should load config by default", () => {
@@ -294,7 +288,6 @@ describe("get listable api resources", () => {
     });
 
     it("should pass empty results", async () => {
-        // TODO: test what happens when exception is thrown
         const resources = await clientMock.client.getListableAPIResources();
         expect(resources).toEqual([]);
     });

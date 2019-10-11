@@ -296,44 +296,39 @@ export class APIListModel {
         }
     }
 
-    public async updateApiList(callback?: (error?: string) => void) {
-        this.ctx.client.getListableAPIResources((error, resources) => {
-            if (error) {
-                callback(
-                    "Error loading api resources\n\n"
-                    + `Reason: ${error.message}`);
-                return;
+    public async updateApiList() {
+        let resources;
+        try {
+            resources = await this.ctx.client.getListableAPIResources();
+        } catch (e) {
+            throw "Error loading api resources\n\n"
+                + `Reason: ${e.message}`;
+        }
+
+        // update state
+        this.ctx.state.apiResources = resources;
+        if (this.ctx.state.apiResource !== null) {
+            // make sure object identity is given for apiResource object in state
+            // and in apiList
+            const r = resources.find(r => {
+                return this.ctx.state.apiResource.getFullName() == r.getFullName();
+            });
+            if (r !== undefined) {
+                this.ctx.state.apiResource = r;
             }
+        }
 
-            // update state
-            this.ctx.state.apiResources = resources;
-            if (this.ctx.state.apiResource !== null) {
-                // make sure object identity is given for apiResource object in state
-                // and in apiList
-                const r = resources.find(r => {
-                    return this.ctx.state.apiResource.getFullName() == r.getFullName();
-                });
-                if (r !== undefined) {
-                    this.ctx.state.apiResource = r;
-                }
-            }
+        const filteredResources = this.helper.filterPreferredVersions(resources);
+        const categorizedResources = this.helper.categorizeResources(filteredResources);
+        const listOptions = this.helper.buildOptionList(categorizedResources);
 
-            const filteredResources = this.helper.filterPreferredVersions(resources);
-            const categorizedResources = this.helper.categorizeResources(filteredResources);
-            const listOptions = this.helper.buildOptionList(categorizedResources);
+        if (this.ctx.state.apiResource === null) {
+            // "value" in option => value instanceof OptionItem
+            const value = listOptions.toArray().find(option => { return "value" in option; });
+            this.ctx.state.apiResource = value && "value" in value ? value.value : null;
+        }
 
-            if (this.ctx.state.apiResource === null) {
-                // "value" in option => value instanceof OptionItem
-                const value = listOptions.toArray().find(option => { return "value" in option; });
-                this.ctx.state.apiResource = value && "value" in value ? value.value : null;
-            }
-
-            this.emitUpdate(listOptions, this.ctx.state.apiResource);
-
-            if (callback) {
-                callback();
-            }
-        });
+        this.emitUpdate(listOptions, this.ctx.state.apiResource);
     }
 }
 
@@ -388,16 +383,13 @@ export class APIListWidget {
         });
     }
 
-    public async updateApiList(doneCb?: () => void) {
-        this.model.updateApiList((error?) => {
-            if (error) {
-                this.view.showError(error);
-                return;
-            }
-            if (doneCb) {
-                doneCb();
-            }
-        });
+    public async updateApiList() {
+        try {
+            await this.model.updateApiList();
+        } catch (e) {
+            this.view.showError(e);
+            return;
+        }
     }
 
     public onSelect(callback: (value: APIResource) => void) {

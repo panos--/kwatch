@@ -230,7 +230,6 @@ describe("APIListModel", () => {
     let mockedClient: MaybeMocked<K8sClient>;
     let model: APIListModel;
     let updateCallback: jest.Mock<void, [OptionList<APIResource>, APIResource]>;
-    let doneCallback: jest.Mock<void, [string]>;
 
     beforeEach(() => {
         let client = new K8sClient();
@@ -242,22 +241,17 @@ describe("APIListModel", () => {
         model = new APIListModel(ctx);
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         updateCallback = jest.fn((options, selected) => {});
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        doneCallback = jest.fn((error) => {});
     });
 
-    const successMockImpl = async (cb: (error?: Error, resources?: APIResource[]) => void) => {
-        cb(null, [
-            mockAPIResource("foos"),
-            mockAPIResource("bars"),
-        ]);
-    };
+    const successMockImpl = async () => [
+        mockAPIResource("foos"),
+        mockAPIResource("bars"),
+    ];
 
-    it("should emit update and call done on success", () => {
+    it("should emit update on success", async () => {
         mockedClient.getListableAPIResources.mockImplementationOnce(successMockImpl);
         model.onUpdate(updateCallback);
-        model.updateApiList(doneCallback);
-        expect(doneCallback).toHaveBeenCalled();
+        await model.updateApiList();
         expect(updateCallback).toHaveBeenCalled();
         const options = updateCallback.mock.calls[0][0].toArray();
         expect(options.length).toBe(3);
@@ -268,73 +262,56 @@ describe("APIListModel", () => {
         expect((options[2] as OptionItem<APIResource>).value.getName()).toEqual("foos");
     });
 
-    it("should work without update listener", () => {
+    it("should work without update listener", async () => {
         mockedClient.getListableAPIResources.mockImplementationOnce(successMockImpl);
-        model.updateApiList(doneCallback);
-        expect(doneCallback).toHaveBeenCalled();
+        await model.updateApiList();
         expect(updateCallback).toHaveBeenCalledTimes(0);
     });
 
-    it("should work without callback", () => {
-        expect.assertions(1);
-        mockedClient.getListableAPIResources.mockImplementationOnce(successMockImpl);
-        model.updateApiList();
-        expect(mockedClient.getListableAPIResources).toHaveBeenCalled();
-    });
-
-    it("should work with empty result", () => {
-        mockedClient.getListableAPIResources
-            .mockImplementationOnce(async (cb: (e?: Error, r?: APIResource[]) => void) => {
-                cb(null, []);
-            });
+    it("should work with empty result", async () => {
+        mockedClient.getListableAPIResources.mockImplementationOnce(async () => []);
         model.onUpdate(updateCallback);
-        model.updateApiList(doneCallback);
-        expect(doneCallback).toHaveBeenCalled();
+        await model.updateApiList();
         expect(updateCallback).toHaveBeenCalled();
         expect(updateCallback.mock.calls[0].length).toBe(2);
         expect(updateCallback.mock.calls[0][0].toArray().length).toBe(0);
         expect(updateCallback.mock.calls[0][1]).toBeNull();
     });
 
-    it("should pass error to callback", () => {
-        mockedClient.getListableAPIResources
-            .mockImplementationOnce(async (cb: (e?: Error, r?: APIResource[]) => void) => {
-                cb(new Error("test-error-message"), null);
-            });
+    it("should pass error to callback", async () => {
+        mockedClient.getListableAPIResources.mockImplementationOnce(async () => {
+            throw new Error("test-error-message");
+        });
         model.onUpdate(updateCallback);
-        model.updateApiList(doneCallback);
+        expect.assertions(2);
+        try {
+            await model.updateApiList();
+        } catch (e) {
+            expect(e).toMatch("test-error-message");
+        }
         expect(updateCallback).not.toHaveBeenCalled();
-        expect(doneCallback).toHaveBeenCalled();
-        expect(doneCallback.mock.calls[0].length).toBe(1);
-        expect(doneCallback.mock.calls[0][0]).toMatch("test-error-message");
     });
 
-    it("should replace selected api resource in state with newly retrieved version", () => {
+    it("should replace selected api resource in state with newly retrieved version", async () => {
         const oldFoosResource = mockAPIResource("foos");
         const newFoosResource = mockAPIResource("foos");
         ctx.state.apiResource = oldFoosResource;
-        mockedClient.getListableAPIResources
-            .mockImplementationOnce(async (cb: (e?: Error, r?: APIResource[]) => void) => {
-                cb(null, [newFoosResource]);
-            });
+        mockedClient.getListableAPIResources.mockImplementationOnce(async () => [newFoosResource]);
         model.onUpdate(updateCallback);
-        model.updateApiList();
+        await model.updateApiList();
         expect(updateCallback).toHaveBeenCalled();
         expect(updateCallback.mock.calls[0].length).toBe(2);
         expect(updateCallback.mock.calls[0][1]).toBe(newFoosResource);
         expect(ctx.state.apiResource).toBe(newFoosResource);
     });
 
-    it("should preserve selected api resource in state if not found in newly retrieved resources", () => {
+    it("should preserve selected api resource in state if not found in newly retrieved resources", async () => {
         const foosResource = mockAPIResource("foos");
         const barsResource = mockAPIResource("bars");
         ctx.state.apiResource = foosResource;
-        mockedClient.getListableAPIResources
-            .mockImplementationOnce(async (cb: (e?: Error, r?: APIResource[]) => void) => {
-                cb(null, [barsResource]);
-            });
+        mockedClient.getListableAPIResources.mockImplementationOnce(async () => [barsResource]);
         model.onUpdate(updateCallback);
-        model.updateApiList();
+        await model.updateApiList();
         expect(updateCallback).toHaveBeenCalled();
         expect(updateCallback.mock.calls[0].length).toBe(2);
         expect(updateCallback.mock.calls[0][1]).toBe(foosResource);

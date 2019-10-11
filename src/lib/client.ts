@@ -2,9 +2,8 @@ import * as request from "request";
 import * as rp from "request-promise-native";
 import * as childProcess from "child_process";
 import async from "async";
-import {
-    V1APIGroup, V1APIResourceList, CoreV1Api, V1Namespace, V1Pod, V1Secret, KubeConfig, ApisApi
-} from "@kubernetes/client-node";
+import { V1APIGroup, V1APIResourceList, V1Namespace, V1Pod, V1Secret } from "@kubernetes/client-node";
+import { KubeConfig, CoreV1Api, ApisApi } from "./vendor/kube_api";
 import { APIResource } from "./api_resource";
 import { ObjectSerializer } from "./vendor/object_serializer";
 import { APIGroupResources } from "./api_group_resources";
@@ -36,14 +35,23 @@ export class K8sClient {
             json: true,
         };
         this.kubeConfig.applyToRequest(opts);
-        return rp.get(opts);
+        try {
+            return await rp.get(opts);
+        } catch (e) {
+            throw e;
+        }
     }
 
     private async getListableExtensionAPIResources(group: V1APIGroup) {
         let result: APIResource[] = [];
         let apiGroupResources: APIGroupResources = new APIGroupResources(group);
         for (let versionObj of group.versions) {
-            let body = await this.request(`/apis/${versionObj.groupVersion}`);
+            let body;
+            try {
+                body = await this.request(`/apis/${versionObj.groupVersion}`);
+            } catch (e) {
+                throw e;
+            }
             let resourceList: V1APIResourceList = ObjectSerializer.deserialize(body, "V1APIResourceList");
             resourceList.resources
                 .filter(r => r.verbs.find(verb => { return verb == "list"; }))
@@ -52,13 +60,12 @@ export class K8sClient {
                 });
         }
         for (let versionedResource of apiGroupResources.getNewestResources()) {
-            // console.log(`${versionedResource.resource.name}.${group.name}`);
             result.push(new APIResource(versionedResource.resource, versionedResource.groupVersion, group));
         }
         return result;
     }
 
-    public async getListableAPIResources(cb: (error?: Error, resources?: APIResource[]) => void) {
+    public async getListableAPIResources() {
         let resources: APIResource[] = [];
 
         const coreApi = this.kubeConfig.makeApiClient(CoreV1Api);
@@ -66,49 +73,47 @@ export class K8sClient {
         try {
             coreApiRes = await coreApi.getAPIResources();
         } catch (e) {
-            cb(e);
-            return;
+            throw e;
         }
-        if (coreApiRes) {
-            coreApiRes.body.resources
-                .filter(r => r.verbs.find(verb => { return verb == "list"; }))
-                .forEach((r) => {
-                    resources.push(new APIResource(r, "v1"));
-                });
-        }
+        coreApiRes.body.resources
+            .filter(r => r.verbs.find(verb => { return verb == "list"; }))
+            .forEach((r) => {
+                resources.push(new APIResource(r, "v1"));
+            });
 
         let apisApiRes;
         try {
             const apisApi = this.kubeConfig.makeApiClient(ApisApi);
             apisApiRes = await apisApi.getAPIVersions();
         } catch (e) {
-            cb(e);
-            null;
+            throw e;
         }
 
         const self = this;
-        async.mapLimit(apisApiRes.body.groups, 10, async function (group, done) {
-            let result = null;
-            let error = null;
-            try {
-                result = await self.getListableExtensionAPIResources(group);
-            } catch (e) {
-                error = e;
-            }
-            done(error, result);
-        },
-        (err, results: APIResource[][]) => {
-            if (err) {
-                cb(err, null);
-                return;
-            }
-            for (const resByGroup of results) {
-                for (const resource of resByGroup) {
-                    resources.push(resource);
+        let results;
+        try {
+            results = await (async.mapLimit(apisApiRes.body.groups, 10, async function (group, done) {
+                let result = null;
+                let error = null;
+                try {
+                    result = await self.getListableExtensionAPIResources(group);
+                } catch (e) {
+                    error = e;
                 }
+                done(error, result);
+            }) as unknown as Promise<APIResource[][]>);
+        }
+        catch (e) {
+            throw e;
+        }
+
+        for (const resByGroup of results) {
+            for (const resource of resByGroup) {
+                resources.push(resource);
             }
-            cb(null, resources);
-        });
+        }
+
+        return resources;
     }
 
     public async getNamespaces(cb: (error?: Error, namespaces?: V1Namespace[]) => void) {

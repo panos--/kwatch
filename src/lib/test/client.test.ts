@@ -1,10 +1,17 @@
-import { KubeConfig, V1Namespace, CoreV1Api, V1NamespaceList, ApiType, V1Pod, V1Secret } from "@kubernetes/client-node";
+import * as rp from "request-promise-native";
+import { V1Namespace, V1NamespaceList, V1Pod, V1Secret, V1APIResourceList, V1APIGroupList, V1APIGroup } from "@kubernetes/client-node";
+import { KubeConfig, CoreV1Api, ApisApi } from "../vendor/kube_api";
 import { K8sClient } from "../client";
 import { mocked } from "ts-jest/utils";
 import { IncomingMessage } from "http";
 import { MaybeMocked } from "ts-jest/dist/util/testing";
+import { APIResource } from "../api_resource";
+import requestPromise = require("request-promise-native");
+import * as request from "request";
+import { RequestPromise } from "request-promise-native";
 
-jest.mock("@kubernetes/client-node");
+jest.mock("../vendor/kube_api");
+jest.mock("request-promise-native");
 
 describe("config handling", () => {
     it("should load config by default", () => {
@@ -24,28 +31,33 @@ describe("config handling", () => {
     });
 });
 
-class ClientMock<T extends ApiType> {
+class ClientMock {
     public client: K8sClient;
     public config: KubeConfig;
     public mockedConfig: MaybeMocked<KubeConfig>;
-    public api: T;
-    public mockedApi: MaybeMocked<T>;
+    public api: CoreV1Api;
+    public mockedApi: MaybeMocked<CoreV1Api>;
 
-    public constructor(ctor: new () => T) {
-        this.api = new ctor();
+    public constructor() {
+        this.api = new CoreV1Api();
         this.mockedApi = mocked(this.api);
         this.config = new KubeConfig();
         this.mockedConfig = mocked(this.config);
+        this.mockedConfig.getCurrentCluster.mockReturnValue({
+            name: "test-cluster",
+            server: "https://server.invalid",
+            skipTLSVerify: true,
+        });
         this.mockedConfig.makeApiClient.mockReturnValue(this.api);
         this.client = new K8sClient(this.config);
     }
 }
 
 describe("get namespaces", () => {
-    let clientMock: ClientMock<CoreV1Api>;
+    let clientMock: ClientMock;
 
     beforeEach(() => {
-        clientMock = new ClientMock<CoreV1Api>(CoreV1Api);
+        clientMock = new ClientMock();
     });
 
     it("should pass empty result", async () => {
@@ -95,10 +107,10 @@ describe("get namespaces", () => {
 });
 
 describe("get pods", () => {
-    let clientMock: ClientMock<CoreV1Api>;
+    let clientMock: ClientMock;
 
     beforeEach(() => {
-        clientMock = new ClientMock<CoreV1Api>(CoreV1Api);
+        clientMock = new ClientMock();
         clientMock.mockedApi.readNamespacedPod.mockImplementation(async (name, namespace) => {
             if (name == "known-pod" && namespace == "known-ns") {
                 const response = new IncomingMessage(null);
@@ -143,10 +155,10 @@ describe("get pods", () => {
 });
 
 describe("get secrets", () => {
-    let clientMock: ClientMock<CoreV1Api>;
+    let clientMock: ClientMock;
 
     beforeEach(() => {
-        clientMock = new ClientMock<CoreV1Api>(CoreV1Api);
+        clientMock = new ClientMock();
         clientMock.mockedApi.readNamespacedSecret.mockImplementation(async (name, namespace) => {
             if (name == "known-secret" && namespace == "known-ns") {
                 const response = new IncomingMessage(null);
@@ -187,5 +199,149 @@ describe("get secrets", () => {
     it("should pass error on connection failures", async () => {
         await expect(clientMock.client.getSecret("fail-connect", "known-ns"))
             .rejects.toEqual(new Error("connect failed"));
+    });
+});
+
+describe("get listable api resources", () => {
+    let clientMock: ClientMock;
+
+    let apiResourcesCommand: "empty"|"list"|"error" = "empty";
+    let apiVersionsCommand: "empty"|"list"|"error" = "empty";
+
+    beforeEach(() => {
+        (require("request-promise-native") as any).__mockFail(false);
+
+        apiResourcesCommand = "empty";
+        apiVersionsCommand = "empty";
+
+        clientMock = new ClientMock();
+        clientMock.mockedConfig.makeApiClient.mockImplementation((apiClientType) => {
+            const api = new apiClientType("server.test");
+            if (api instanceof CoreV1Api) {
+                mocked(api).getAPIResources.mockImplementation(async () => {
+                    if (apiResourcesCommand == "error") {
+                        throw new Error("apiresources-error");
+                    }
+                    let list: V1APIResourceList;
+                    if (apiResourcesCommand == "empty") {
+                        list = new V1APIResourceList();
+                        list.resources = [];
+                    }
+                    else {
+                        list = new V1APIResourceList();
+                        list.resources = [
+                            {
+                                kind: "Foo",
+                                name: "foos",
+                                singularName: "",
+                                namespaced: true,
+                                verbs: ["list"]
+                            },
+                            {
+                                kind: "Bar",
+                                name: "bars",
+                                singularName: "",
+                                namespaced: true,
+                                verbs: ["list"]
+                            },
+                            {
+                                kind: "Qux",
+                                name: "quxs",
+                                singularName: "",
+                                namespaced: true,
+                                verbs: ["get"]
+                            },
+                            {
+                                kind: "Baz",
+                                name: "bazs",
+                                singularName: "",
+                                namespaced: true,
+                                verbs: ["list"]
+                            },
+                        ];
+                    }
+                    const res = {
+                        response: new IncomingMessage(null),
+                        body: list,
+                    };
+                    return res;
+                });
+            }
+            else if (api instanceof ApisApi) {
+                mocked(api).getAPIVersions.mockImplementation(async () => {
+                    if (apiVersionsCommand == "error") {
+                        throw new Error("apiversions-error");
+                    }
+                    const list = new V1APIGroupList();
+                    list.groups = apiVersionsCommand == "empty" ? [] : [
+                        { name: "foogroup", versions: [
+                            { groupVersion: "foogroup/v1", version: "v1" }
+                        ] },
+                        { name: "bargroup", versions: [
+                            { groupVersion: "bargroup/v1", version: "v1" },
+                            { groupVersion: "bargroup/v1alpha1", version: "v1alpha1" }
+                        ] },
+                    ];
+                    const res = {
+                        response: new IncomingMessage(null),
+                        body: list,
+                    };
+                    return res;
+                });
+            }
+            return api;
+        });
+    });
+
+    it("should pass empty results", async () => {
+        // TODO: test what happens when exception is thrown
+        const resources = await clientMock.client.getListableAPIResources();
+        expect(resources).toEqual([]);
+    });
+
+    it("should pass listable core resources", async () => {
+        apiResourcesCommand = "list";
+        const resources = await clientMock.client.getListableAPIResources();
+        expect(resources).toHaveLength(3);
+        expect(resources.map(r => r.resource.name)).toEqual(["foos", "bars", "bazs"]);
+    });
+
+    it("should pass errors from core resource request", async () => {
+        apiResourcesCommand = "error";
+        expect.assertions(1);
+        try {
+            await clientMock.client.getListableAPIResources();
+        } catch (e) {
+            expect(e).toEqual(new Error("apiresources-error"));
+        }
+    });
+
+    it("should pass listable extension resources", async () => {
+        apiVersionsCommand = "list";
+        const resources = await clientMock.client.getListableAPIResources();
+        expect(resources).toHaveLength(2);
+        expect(resources.find(r => r.getFullName() == "foos.foogroup/v1")).toBeDefined();
+        expect(resources.find(r => r.getFullName() == "bars.bargroup/v1")).toBeDefined();
+    });
+
+    it("shoud pass errors from api versions request", async () => {
+        apiVersionsCommand = "error";
+        expect.assertions(1);
+        try {
+            await clientMock.client.getListableAPIResources();
+        } catch (e) {
+            expect(e).toEqual(new Error("apiversions-error"));
+        }
+    });
+
+    it("shoud pass errors from listable extension request", async () => {
+        (require("request-promise-native") as any).__mockFail(true);
+        apiVersionsCommand = "list";
+        expect.assertions(1);
+        try {
+            await clientMock.client.getListableAPIResources();
+        } catch (e) {
+            expect(e).toEqual(new Error("request failed"));
+        }
     });
 });

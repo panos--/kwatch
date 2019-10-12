@@ -36,14 +36,15 @@ export class DeleteAction implements Action {
                 loading.style.border.bg = ctx.colorScheme.COLOR_BORDER_BG;
                 ctx.screen.append(loading);
                 loading.load("Deleting...");
-                ctx.client.deleteResource(namespace, apiResource, resource, false, (error) => {
-                    loading.stop();
-                    if (error) {
+                ctx.client.deleteResource(namespace, apiResource, resource, false)
+                    .then(() => {
+                        loading.stop();
+                    }).catch(error => {
+                        loading.stop();
                         ctx.widgetFactory.error(
                             `Error deleting ${apiResource.getName()} ${resource}`
                             + `Reason: ${error.message}`);
-                    }
-                });
+                    });
             });
     }
 }

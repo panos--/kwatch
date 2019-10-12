@@ -37,14 +37,15 @@ export class ForceDeleteAction implements Action {
                 });
                 loading.style.border.bg = ctx.colorScheme.COLOR_BORDER_BG;
                 loading.load("Deleting...");
-                ctx.client.deleteResource(namespace, apiResource, resource, true, (error) => {
-                    loading.stop();
-                    if (error) {
+                ctx.client.deleteResource(namespace, apiResource, resource, true)
+                    .then(() => {
+                        loading.stop();
+                    }).catch(error => {
+                        loading.stop();
                         ctx.widgetFactory.error(
                             `Error deleting ${apiResource.getName()} ${resource}`
                             + `Reason: ${error.message}`);
-                    }
-                });
+                    });
             });
     }
 }

@@ -251,9 +251,7 @@ export class ResourceListWidget {
             return;
         }
 
-        this.ctx.client.listResourcesFormatted(namespace.metadata.name, [
-            apiResource.resource.name
-        ], (error, lines) => {
+        const processResult = (lines: string[]|null, error?: Error) => {
             if (this.paused || this.frozen) {
                 return;
             }
@@ -340,7 +338,11 @@ export class ResourceListWidget {
             this.resourceList.scrollTo(selectedIndex);
 
             this.render();
-        });
+        };
+
+        this.ctx.client.listResourcesFormatted(namespace.metadata.name, apiResource.resource.name)
+            .then(lines => processResult(lines))
+            .catch(error => processResult(null, error));
 
         reschedule.call(this);
     }

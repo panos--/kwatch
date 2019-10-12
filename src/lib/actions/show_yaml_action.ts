@@ -13,27 +13,22 @@ export class ShowYamlAction implements Action {
     }
 
     public execute(ctx: AppContext, namespace: V1Namespace, apiResource: APIResource, resource: string) {
-        ctx.client.getResourceAsYaml(namespace, apiResource, resource, (error, lines) => {
-            const box = ctx.widgetFactory.textBox({
-                parent: ctx.screen,
-            });
-            box.setLabel(
-                (apiResource.resource.namespaced ? namespace.metadata.name + " / " : "")
-                + apiResource.getCapitalizedSingularName() + " " + resource);
-
-            if (error) {
+        ctx.client.getResourceAsYaml(namespace, apiResource, resource)
+            .then(lines => {
+                const box = ctx.widgetFactory.textBox({
+                    parent: ctx.screen,
+                });
+                box.setLabel(
+                    (apiResource.resource.namespaced ? namespace.metadata.name + " / " : "")
+                    + apiResource.getCapitalizedSingularName() + " " + resource);
+                box.insertBottom(lines);
+                box.focus();
+                ctx.screen.render();
+            }).catch(error => {
                 ctx.widgetFactory.error(
                     `Error retrieving definition of resource ${resource}\n\n`
                     + `Reason: ${error.message}`
                 );
-                return;
-            }
-            else {
-                box.insertBottom(lines);
-            }
-
-            box.focus();
-            ctx.screen.render();
-        });
+            });
     }
 }

@@ -4,8 +4,11 @@ import { K8sClient } from "../client";
 import { mocked } from "ts-jest/utils";
 import { IncomingMessage } from "http";
 import { MaybeMocked } from "ts-jest/dist/util/testing";
+import { APIResource } from "../api_resource";
+import * as cpp from "../vendor/child_process_promise";
 
 jest.mock("../vendor/kube_api");
+jest.mock("../vendor/child_process_promise");
 
 describe("config handling", () => {
     it("should load config by default", () => {
@@ -335,6 +338,164 @@ describe("get listable api resources", () => {
             await clientMock.client.getListableAPIResources();
         } catch (e) {
             expect(e).toEqual(new Error("request failed"));
+        }
+    });
+});
+
+describe("describe resource", () => {
+    const client = new K8sClient();
+    const namespace: V1Namespace = {
+        metadata: { name: "default" }
+    };
+    const podsResource = new APIResource({
+        kind: "Pod",
+        name: "pods",
+        singularName: "",
+        namespaced: true,
+        verbs: [],
+    }, "v1");
+    const resource = "test-pod";
+
+    beforeEach(() => {
+        (cpp.execFile as any).__mockFail = false;
+    });
+
+    it("should return description of resource", async () => {
+        const outputLines = await client.describeResource(namespace, podsResource, resource);
+        expect(outputLines.length).toBeGreaterThan(0);
+        expect(outputLines[0]).toMatch(`Name:           ${resource}`);
+        expect(outputLines.join("\n")).toMatch(`Namespace:      ${namespace.metadata.name}`);
+    });
+
+    it("should throw error on failure", async () => {
+        (cpp.execFile as any).__mockFail = true;
+        expect.assertions(1);
+        try {
+            await client.describeResource(namespace, podsResource, resource);
+        } catch (e) {
+            expect(e).toEqual(new Error(`${resource} failure`));
+        }
+    });
+});
+
+describe("get resource as yaml", () => {
+    const client = new K8sClient();
+    const namespace: V1Namespace = {
+        metadata: { name: "default" }
+    };
+    const podsResource = new APIResource({
+        kind: "Pod",
+        name: "pods",
+        singularName: "",
+        namespaced: true,
+        verbs: [],
+    }, "v1");
+    const resource = "test-pod";
+
+    beforeEach(() => {
+        (cpp.execFile as any).__mockFail = false;
+    });
+
+    it("should return yaml definition of resource", async () => {
+        const outputLines = await client.getResourceAsYaml(namespace, podsResource, resource);
+        expect(outputLines.length).toBeGreaterThan(0);
+        expect(outputLines[0]).toMatch("apiVersion");
+        expect(outputLines.join("\n")).toMatch(`name: ${resource}`);
+    });
+
+    it("should throw error on failure", async () => {
+        (cpp.execFile as any).__mockFail = true;
+        expect.assertions(1);
+        try {
+            await client.getResourceAsYaml(namespace, podsResource, resource);
+        } catch (e) {
+            expect(e).toEqual(new Error(`${resource} failure`));
+        }
+    });
+});
+
+describe("delete resource", () => {
+    const client = new K8sClient();
+    const namespace: V1Namespace = {
+        metadata: { name: "default" }
+    };
+    const podsResource = new APIResource({
+        kind: "Pod",
+        name: "pods",
+        singularName: "",
+        namespaced: true,
+        verbs: [],
+    }, "v1");
+    const resource = "test-pod";
+
+    beforeEach(() => {
+        (cpp.execFile as any).__mockFail = false;
+    });
+
+    it("should return success message", async () => {
+        const outputLines = await client.deleteResource(namespace, podsResource, resource, false);
+        expect(outputLines.length).toBeGreaterThan(0);
+        expect(outputLines.join("\n")).toBe(`pod "${resource}" deleted`);
+    });
+
+    it("should throw error on failure", async () => {
+        (cpp.execFile as any).__mockFail = true;
+        expect.assertions(1);
+        try {
+            await client.deleteResource(namespace, podsResource, resource, false);
+        } catch (e) {
+            expect(e).toEqual(new Error(`delete ${resource} failure`));
+        }
+    });
+
+    it("should return success message on force", async () => {
+        const outputLines = await client.deleteResource(namespace, podsResource, resource, true);
+        expect(outputLines.length).toBeGreaterThan(0);
+        expect(outputLines.join("\n")).toBe(`pod "${resource}" force deleted`);
+    });
+
+    it("should throw error on failure on force", async () => {
+        (cpp.execFile as any).__mockFail = true;
+        expect.assertions(1);
+        try {
+            await client.deleteResource(namespace, podsResource, resource, true);
+        } catch (e) {
+            expect(e).toEqual(new Error(`force delete ${resource} failure`));
+        }
+    });
+});
+
+describe("list formatted resources", () => {
+    const client = new K8sClient();
+    const namespace = "default";
+    const podsResource = "pods";
+
+    beforeEach(() => {
+        (cpp.execFile as any).__mockFail = false;
+    });
+
+    it("should return formatted resource list", async () => {
+        const outputLines = await client.listResourcesFormatted(namespace, podsResource);
+        expect(outputLines.length).toBeGreaterThan(0);
+        expect(outputLines[0]).toMatch(/^NAME\s/);
+        expect(outputLines[1]).toMatch(/^pod-0/);
+        expect(outputLines[outputLines.length - 1]).not.toBe("");
+    });
+
+    it("should return message if no resources found", async () => {
+        const outputLines = await client.listResourcesFormatted("empty-ns", podsResource);
+        expect(outputLines.length).toBe(1);
+        expect(outputLines[0]).toBe("No resources found in empty-ns namespace.");
+        expect(outputLines[outputLines.length - 1]).not.toBe("");
+    });
+
+    it("should throw error on failure", async () => {
+        (cpp.execFile as any).__mockFail = true;
+        expect.assertions(1);
+        try {
+            await client.listResourcesFormatted(namespace, podsResource);
+        } catch (e) {
+            expect(e).toEqual(new Error("get pods failure"));
         }
     });
 });

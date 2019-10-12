@@ -1,6 +1,7 @@
 import * as request from "request";
 import * as rp from "request-promise-native";
 import * as childProcess from "child_process";
+import * as cpp from "./vendor/child_process_promise";
 import async from "async";
 import { V1APIGroup, V1APIResourceList, V1Namespace, V1Pod, V1Secret } from "@kubernetes/client-node";
 import { KubeConfig, CoreV1Api, ApisApi } from "./vendor/kube_api";
@@ -131,93 +132,49 @@ export class K8sClient {
         cb(null, namespaces);
     }
 
-    public async listResourcesFormatted(namespace: string | null, apiResources: string[], cb: (error: Error, lines: any[]) => void) {
-        if (namespace !== null && namespace.length == 0) {
-            throw "invalid argument: namespace must not be empty";
+    public async listResourcesFormatted(namespace: string, apiResource: string) {
+        const args = ["-n", namespace, "get", apiResource, "-o", "wide"];
+        try {
+            const { stdout } = await cpp.execFile("kubectl", args, { encoding: null });
+            return stdout.toLocaleString().trimRight().split("\n");
+        } catch (e) {
+            throw e;
         }
-
-        if (apiResources.length == 0) {
-            throw "invalid argument: apiResources must not be empty";
-        }
-        for (let apiResource of apiResources) {
-            if (apiResource.trim().length == 0) {
-                throw "invalid argument: apiResources must not contain empty strings";
-            }
-        }
-
-        let args = [];
-        if (namespace !== null) {
-            args.push("-n", namespace);
-        }
-        args.push("get", apiResources.join(","), "-o", "wide");
-
-        childProcess.execFile("kubectl", args, {
-            encoding: null,
-        }, (error, stdout) => {
-            cb(error, stdout.toLocaleString().trimRight().split("\n"));
-        });
     }
 
-    public async describeResource(
-        namespace: V1Namespace | null,
-        apiResource: APIResource,
-        resource: string,
-        cb: (error: Error, lines: any[]) => void) {
-
-        let args = [];
-        if (namespace !== null) {
-            args.push("-n", namespace.metadata.name);
+    public async describeResource(namespace: V1Namespace, apiResource: APIResource, resource: string) {
+        const args = ["-n", namespace.metadata.name, "describe", apiResource.resource.name, resource];
+        try {
+            const { stdout } = await cpp.execFile("kubectl", args, { encoding: null });
+            return stdout.toLocaleString().split("\n");
+        } catch (e) {
+            throw e;
         }
-        args.push("describe", apiResource.resource.name, resource);
-
-        childProcess.execFile("kubectl", args, {
-            encoding: null,
-        }, (error, stdout) => {
-            cb(error, stdout.toLocaleString().split("\n"));
-        });
     }
 
-    public async getResourceAsYaml(
-        namespace: V1Namespace | null,
-        apiResource: APIResource,
-        resource: string,
-        cb: (error: Error, lines: any[]) => void) {
-
-        let args = [];
-        if (namespace !== null) {
-            args.push("-n", namespace.metadata.name);
+    public async getResourceAsYaml(namespace: V1Namespace, apiResource: APIResource, resource: string) {
+        const args = ["-n", namespace.metadata.name, "get", apiResource.resource.name, resource, "-o", "yaml"];
+        try {
+            const { stdout } = await cpp.execFile("kubectl", args, { encoding: null });
+            return stdout.toLocaleString().split("\n");
+        } catch (e) {
+            throw e;
         }
-        args.push("get", apiResource.resource.name, resource, "-o", "yaml");
-
-        childProcess.execFile("kubectl", args, {
-            encoding: null,
-        }, (error, stdout) => {
-            cb(error, stdout.toLocaleString().split("\n"));
-        });
     }
 
-    public async deleteResource(
-        namespace: V1Namespace | null,
-        apiResource: APIResource,
-        resource: string,
-        force: boolean,
-        cb: (error: Error) => void) {
-
-        let args = [];
-        if (namespace !== null) {
-            args.push("-n", namespace.metadata.name);
-        }
-        args.push("delete");
+    public async deleteResource(namespace: V1Namespace, apiResource: APIResource, resource: string, force: boolean) {
+        let args = ["-n", namespace.metadata.name, "delete"];
         if (force) {
             args.push("--force", "--grace-period=0");
         }
         args.push(apiResource.resource.name, resource);
 
-        childProcess.execFile("kubectl", args, {
-            encoding: null,
-        }, (error) => {
-            cb(error);
-        });
+        try {
+            const { stdout } = await cpp.execFile("kubectl", args, { encoding: null });
+            return stdout.toLocaleString().split("\n");
+        } catch (e) {
+            throw e;
+        };
     }
 
     public async getPod(podName: string, namespaceName: string) {

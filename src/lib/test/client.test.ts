@@ -320,7 +320,7 @@ describe("get listable api resources", () => {
         expect(resources.find(r => r.getFullName() == "bars.bargroup/v1")).toBeDefined();
     });
 
-    it("shoud pass errors from api versions request", async () => {
+    it("should pass errors from api versions request", async () => {
         apiVersionsCommand = "error";
         expect.assertions(1);
         try {
@@ -330,7 +330,7 @@ describe("get listable api resources", () => {
         }
     });
 
-    it("shoud pass errors from listable extension request", async () => {
+    it("should pass errors from listable extension request", async () => {
         (require("request-promise-native") as any).__mockFail(true);
         apiVersionsCommand = "list";
         expect.assertions(1);

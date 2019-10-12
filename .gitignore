@@ -43,3 +43,6 @@ yarn.lock
 
 # terminalizer demo.yml
 demo/demo.yml
+
+# snippets
+src/devutils/snippets.ts

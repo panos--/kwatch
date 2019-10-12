@@ -18,11 +18,19 @@
         // },
         {
             "type": "node",
-            "runtimeVersion": "10.16.3", // If i need to run node 4.8.7
+            "runtimeVersion": "10.16.3",
             "request": "launch",
             "name": "Launch main.ts",
             "program": "${workspaceFolder}/dist/main.js",
             "console": "externalTerminal"
+        },
+        {
+            "type": "node",
+            "runtimeVersion": "10.16.3",
+            "request": "launch",
+            "name": "Launch Snippets",
+            "program": "${workspaceFolder}/dist/devutils/snippets.js",
+            "console": "integratedTerminal"
         },
         {
             "type": "node",
@@ -31,5 +39,39 @@
             "processId": "${command:PickProcess}",
             "protocol": "inspector"
         },
+        {
+            "type": "node",
+            "request": "launch",
+            "runtimeVersion": "10.16.3",
+            "name": "Jest All",
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "args": [
+                "--runInBand"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "runtimeVersion": "10.16.3",
+            "name": "Jest Current File",
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "args": [
+                "${fileBasenameNoExtension}",
+                "--config",
+                "jest.config.js"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+            }
+        }
     ]
 }

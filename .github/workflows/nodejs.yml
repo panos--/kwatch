@@ -4,7 +4,6 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -12,29 +11,32 @@ jobs:
         node-version: [10.x, 12.x]
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - name: npm install and build
-      run: |
-        npm ci
-        npm run build
-    - name: pkg binaries
-      run: |
-        node_version="node${CI_NODE_VERSION%.*}"
-        out=out/"$node_version"
-        mkdir -p "$out"
-        npx pkg --targets="$node_version"-linux-x64,"$node_version"-macos-x64 --output="$out"/kwatch dist/main.js
-      env:
-        CI: true
-        CI_NODE_VERSION: ${{ matrix.node-version }}
-    - name: semantic release
-      if: matrix.node-version == '10.x'
-      run: |
-        npx semantic-release@15
-      env:
-        #GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GH_TOKEN: ${{ secrets.GITHUB_PERSONAL_TOKEN }}
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - uses: actions/checkout@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: npm install and build
+        run: |
+          npm ci
+          npm run build
+      - name: test
+        run: |
+          npm test
+      - name: pkg binaries
+        run: |
+          node_version="node${CI_NODE_VERSION%.*}"
+          out=out/"$node_version"
+          mkdir -p "$out"
+          npx pkg --targets="$node_version"-linux-x64,"$node_version"-macos-x64 --output="$out"/kwatch dist/main.js
+        env:
+          CI: true
+          CI_NODE_VERSION: ${{ matrix.node-version }}
+      - name: semantic release
+        if: matrix.node-version == '10.x'
+        run: |
+          npx semantic-release@15
+        env:
+          #GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_PERSONAL_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

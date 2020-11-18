@@ -139,7 +139,7 @@
     "jest": "^24.8.0",
     "nodemon": "^1.19.1",
     "pkg": "^4.4.0",
-    "semantic-release": "^15.13.24",
+    "semantic-release": "^17.2.3",
     "shelljs": "^0.8.3",
     "supertest": "^4.0.2",
     "ts-jest": "^24.0.2",

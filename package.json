@@ -99,7 +99,7 @@
     "lodash": "^4.17.15",
     "lusca": "^1.6.1",
     "pluralize": "^8.0.0",
-    "pug": "^2.0.4",
+    "pug": "^3.0.1",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",
     "winston": "^2.4.2",
